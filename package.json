@@ -1,0 +1,8 @@
+{
+  "name": "rytm",
+  "private": true,
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "mobile": "pnpm --filter @rytm/mobile start"
+  }
+}
