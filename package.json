@@ -5,5 +5,10 @@
   "scripts": {
     "mobile": "pnpm --filter @rytm/mobile start",
     "api": "pnpm --filter @rytm/api dev"
+  },
+  "pnpm": {
+    "overrides": {
+      "@napi-rs/canvas": "-"
+    }
   }
 }
