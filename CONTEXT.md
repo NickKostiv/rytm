@@ -28,7 +28,7 @@ Full-stack pnpm monorepo.
 | Part | Location | Stack |
 |------|----------|-------|
 | Mobile + web client | `apps/mobile` | Expo (React Native + web), Expo Router |
-| Backend API | not created yet | Node.js |
+| Backend API | `apps/api` | Node.js 22, Hono, Claude via the Anthropic Messages API |
 | Shared code | `packages/*` (planned) | TypeScript |
 
 Backend responsibilities: auth, chat API, LLM integration, source ingestion and indexing, retrieval, citation assembly.
@@ -48,7 +48,10 @@ Backend responsibilities: auth, chat API, LLM integration, source ingestion and 
 
 ## Open decisions
 
-- LLM provider and model.
+Decided, see [CLAUDE.md](CLAUDE.md) "Decisions already made": the LLM provider is Anthropic, called through the Messages API from our own backend; the current model is `claude-opus-5-5`.
+
+Each open item below has a decision ticket in Jira project `KAN`; the map is in CLAUDE.md "Backlog".
+
 - Grounding approach: RAG (recommended — citable, updatable without retraining) vs fine-tuning.
 - Vector store / database.
 - Auth method (email + password, OAuth, magic link) and who may register in Phase 1 (open sign-up vs verified paramedics).

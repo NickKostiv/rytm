@@ -73,19 +73,28 @@ Also say which agents ran and how many rounds; the user pays for them.
 
 After you have the final status, and before you report to the user, write to the ticket. The comment is what the owner and anyone later will read instead of this session, so it carries the same honesty as your report: no status upgrade, nothing left out because it looks bad.
 
-**Comment** (`addOrEditJiraIssueComment`), once per run, in English like the tickets, at most about 15 lines:
+**Comment** (`addOrEditJiraIssueComment`), once per run, in English like the tickets. The form below is fixed: every label, in this order, spelled as shown. The owner scans many of these, and a comment that looks different each time has to be read in full to find the status.
 
 ```
-Status: Done and verified | Implemented, not fully verified | Blocked | Failed
-What was done: <2–4 lines; "no code changed" if so>
+Posted by: orchestrator agent (Claude Code), <YYYY-MM-DD>
+Status: <exactly one of: Done and verified | Implemented, not fully verified | Blocked | Failed>
+What was done: <one or two sentences; "No code changed." if so>
 Acceptance criteria:
-- <criterion, shortened> — passed | failed | not executed — <decisive evidence in a few words>
-Not verified: <list with reasons, or none>
-Changed files: <paths, or none>
-Review: <score and verdict, or "not run"> · QA: <verdict, or "not run">
-Follow-ups proposed (not created): <one line each, or none>
+- AC1 <criterion in a few words> — <passed | partly met | failed | not executed> — <decisive evidence>
+- AC2 ...
+Not verified: <item — reason; item — reason> | none
+Changed files: <paths> | none
+Review: <N/10, APPROVE or CHANGES REQUESTED> | not run
+QA: <PASS, PARTIAL, FAIL or BLOCKED> | not run
+Follow-ups proposed (not created): <title; title> | none
 ```
 
+- No label is ever dropped. When there is nothing to say, write `none` or `not run` after it; a missing line reads as "forgot to check".
+- `Posted by` comes first because the comment appears under the owner's Jira account. Without it nobody can tell an agent wrote it.
+- `Status` uses one of the four phrases word for word, the same one you give the user. Per criterion, use only `passed`, `partly met`, `failed` or `not executed`. `partly met` names the missing part in the evidence, and a ticket with any criterion that is not `passed` cannot have the status "Done and verified".
+- One line per acceptance criterion, in ticket order, numbered `AC1`, `AC2`, …. One line means one line: the decisive command or output fragment, not the story of how you got there.
+- Length: the fixed lines plus one per criterion, and nothing after `Follow-ups`. No headings, no bold, no extra paragraphs, no tables. Detail that does not fit belongs in your report to the user, not in the comment.
+- Before posting, check the draft against the form: all nine labels present and in order, status phrase exact, every criterion on its own line. Fix it first; do not post and then correct with a second comment.
 - Put the decisive output line in the comment itself. Scratchpad paths disappear after the session, so a path to a transcript there is not evidence anyone can open later.
 - Never include secrets, tokens, demo credentials, chat or answer text beyond a few words, patient data, or the user's local home paths.
 - Add a new comment on a later run; never edit or delete an existing comment, yours or anyone's.
