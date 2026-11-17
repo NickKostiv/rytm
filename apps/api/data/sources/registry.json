@@ -1,0 +1,655 @@
+[
+  {
+    "id": "1269-20190605-dod",
+    "url": "https://moz.gov.ua/uploads/2/12737-dn_20190605_1269_dod.pdf",
+    "protocolLines": [
+      1
+    ],
+    "orderNumber": "1269",
+    "orderDate": "2019-06-05",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1269-20190605-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/uploads/2/12737-dn_20190605_1269_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "78ec08b025920da3421dc17292460c5b9df7832e5f4371a4482fe2d02d9523f0",
+    "previousSha256": null,
+    "bytes": 2172654,
+    "fetchedAt": "2026-11-17T14:36:12.143Z",
+    "checkedAt": "2026-11-17T14:48:40.772Z",
+    "documentCheck": {
+      "pageCount": 317,
+      "orderNumber": "1269",
+      "orderDate": "2019-06-05",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1259-20240718-dod",
+    "url": "https://moz.gov.ua/storage/uploads/45247d3e-2a89-434a-872d-61c19ca63a4e/dn_1259_18072024_dod.pdf",
+    "protocolLines": [
+      2
+    ],
+    "orderNumber": "1259",
+    "orderDate": "2024-07-18",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1259-20240718-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/45247d3e-2a89-434a-872d-61c19ca63a4e/dn_1259_18072024_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "3344ac85aa5cac7e53009b2c8ec35d8c3d9ee0692465781051a8a0aad9a04cd7",
+    "previousSha256": null,
+    "bytes": 2170306,
+    "fetchedAt": "2026-11-17T14:36:12.594Z",
+    "checkedAt": "2026-11-17T14:48:41.837Z",
+    "documentCheck": {
+      "pageCount": 38,
+      "orderNumber": "1259",
+      "orderDate": "2024-07-18",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1259-20240718-dod2",
+    "url": "https://moz.gov.ua/storage/uploads/45247d3e-2a89-434a-872d-61c19ca63a4e/dn_1259_18072024_dod_2-.pdf",
+    "protocolLines": [
+      3
+    ],
+    "orderNumber": "1259",
+    "orderDate": "2024-07-18",
+    "dateSource": "document",
+    "annex": "2",
+    "pdfFile": "pdf/1259-20240718-dod2.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/45247d3e-2a89-434a-872d-61c19ca63a4e/dn_1259_18072024_dod_2-.pdf"
+    },
+    "warnings": [
+      "file name \"dn_1259_18072024_dod_2-.pdf\" has a trailing \"-\" after the annex number; annex 2 needs confirming from the document"
+    ],
+    "validity": "unknown",
+    "sha256": "36ee71b4e0905feb14ddb844987e1a1f0a26d6d292555c6b186b8f9f3606cbbb",
+    "previousSha256": null,
+    "bytes": 819443,
+    "fetchedAt": "2026-11-17T14:36:12.796Z",
+    "checkedAt": "2026-11-17T14:48:42.066Z",
+    "documentCheck": {
+      "pageCount": 44,
+      "orderNumber": "1259",
+      "orderDate": "2024-07-18",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "536-20250326-dod",
+    "url": "https://moz.gov.ua/storage/uploads/3b0e0c27-4990-4f8f-b50c-d29e769812c8/dn_536_26032025_dod.pdf",
+    "protocolLines": [
+      4
+    ],
+    "orderNumber": "536",
+    "orderDate": "2025-03-26",
+    "dateSource": "filename",
+    "annex": null,
+    "pdfFile": "pdf/536-20250326-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/3b0e0c27-4990-4f8f-b50c-d29e769812c8/dn_536_26032025_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "ff63ba3a4ed34a0265ea2b443cf43a3bf32692e3de6b164b0da8f7e412f5bb83",
+    "previousSha256": null,
+    "bytes": 1734474,
+    "fetchedAt": "2026-11-17T14:36:13.161Z",
+    "checkedAt": "2026-11-17T14:48:42.429Z",
+    "documentCheck": {
+      "pageCount": 59,
+      "orderNumber": "536",
+      "orderDate": "2026-03-26",
+      "mismatches": [
+        "file name date 2025-03-26, document date 2026-03-26"
+      ]
+    }
+  },
+  {
+    "id": "1957-20210915-dod",
+    "url": "https://moz.gov.ua/uploads/6/33038-dn_1957_15_09_2021_dod.pdf",
+    "protocolLines": [
+      5
+    ],
+    "orderNumber": "1957",
+    "orderDate": "2021-09-15",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1957-20210915-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/uploads/6/33038-dn_1957_15_09_2021_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "0e953744dd6a472d70dbdafcc5d5b552fc9e82681c8b311766235e9b6950553b",
+    "previousSha256": null,
+    "bytes": 594312,
+    "fetchedAt": "2026-11-17T14:36:13.337Z",
+    "checkedAt": "2026-11-17T14:48:42.614Z",
+    "documentCheck": {
+      "pageCount": 62,
+      "orderNumber": "1957",
+      "orderDate": "2021-09-15",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1070-20240620-dod",
+    "url": "https://moz.gov.ua/storage/uploads/a1795243-5238-47bc-a60c-241adf749ce7/dn_1070_20062024_dod.pdf",
+    "protocolLines": [
+      6
+    ],
+    "orderNumber": "1070",
+    "orderDate": "2024-06-20",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1070-20240620-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/a1795243-5238-47bc-a60c-241adf749ce7/dn_1070_20062024_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "151c8f3809dad635efda7dcf74bb85b690926e8504a8a6e5a1bddc107d2de409",
+    "previousSha256": null,
+    "bytes": 3286050,
+    "fetchedAt": "2026-11-17T14:36:13.939Z",
+    "checkedAt": "2026-11-17T14:48:43.315Z",
+    "documentCheck": {
+      "pageCount": 103,
+      "orderNumber": "1070",
+      "orderDate": "2024-06-20",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "170-20220126-dod",
+    "url": "https://moz.gov.ua/uploads/7/35621-dn_170_26_01_2022_dod.pdf",
+    "protocolLines": [
+      7
+    ],
+    "orderNumber": "170",
+    "orderDate": "2022-01-26",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/170-20220126-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/uploads/7/35621-dn_170_26_01_2022_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "523bf8a25283b79c9774233d84182492be779344dc0c71ecac8def1e4e6083b9",
+    "previousSha256": null,
+    "bytes": 914452,
+    "fetchedAt": "2026-11-17T14:36:14.174Z",
+    "checkedAt": "2026-11-17T14:48:43.542Z",
+    "documentCheck": {
+      "pageCount": 47,
+      "orderNumber": "170",
+      "orderDate": "2022-01-26",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1869-20241106-dod",
+    "url": "https://moz.gov.ua/storage/uploads/01b637ed-8b33-42f7-93b0-cc102192eec9/dn_1869_06112024_dod.pdf",
+    "protocolLines": [
+      8
+    ],
+    "orderNumber": "1869",
+    "orderDate": "2024-11-06",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1869-20241106-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/01b637ed-8b33-42f7-93b0-cc102192eec9/dn_1869_06112024_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "cc82dae1e11bbbc20739090db8ed830be1e4ce20a01493b3a201f28ab79a74fa",
+    "previousSha256": null,
+    "bytes": 531379,
+    "fetchedAt": "2026-11-17T14:36:14.322Z",
+    "checkedAt": "2026-11-17T14:48:43.994Z",
+    "documentCheck": {
+      "pageCount": 67,
+      "orderNumber": "1869",
+      "orderDate": "2024-11-06",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod3",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_3.pdf",
+    "protocolLines": [
+      9
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": "3",
+    "pdfFile": "pdf/253-20250213-dod3.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_3.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "963f252087ed0b4c1e31738967bab63f10487e4fc3b813b9191ec7894ce5ba28",
+    "previousSha256": null,
+    "bytes": 1183300,
+    "fetchedAt": "2026-11-17T14:36:14.582Z",
+    "checkedAt": "2026-11-17T14:48:44.288Z",
+    "documentCheck": {
+      "pageCount": 36,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod5",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_5.pdf",
+    "protocolLines": [
+      10
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": "5",
+    "pdfFile": "pdf/253-20250213-dod5.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_5.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "d26f6dd0f035a3f28f3f163ffed69094ca3aad3f67e61092edc10290f1fd8c8e",
+    "previousSha256": null,
+    "bytes": 1218316,
+    "fetchedAt": "2026-11-17T14:36:14.836Z",
+    "checkedAt": "2026-11-17T14:48:44.818Z",
+    "documentCheck": {
+      "pageCount": 14,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod4",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_4.pdf",
+    "protocolLines": [
+      11
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": "4",
+    "pdfFile": "pdf/253-20250213-dod4.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_4.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "9660066ebb393381fe7fb55c53805b3e582f05997bcc0f28a619080b5d5941eb",
+    "previousSha256": null,
+    "bytes": 2465185,
+    "fetchedAt": "2026-11-17T14:36:15.246Z",
+    "checkedAt": "2026-11-17T14:48:45.259Z",
+    "documentCheck": {
+      "pageCount": 38,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod11",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_11.PDF",
+    "protocolLines": [
+      12
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": "11",
+    "pdfFile": "pdf/253-20250213-dod11.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_11.PDF"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "c77dba72f9c4fdf1045452c26cc29ae01f4f5b56da457c9546d0bc72a8fce0f0",
+    "previousSha256": null,
+    "bytes": 1408517,
+    "fetchedAt": "2026-11-17T14:36:15.509Z",
+    "checkedAt": "2026-11-17T14:48:45.560Z",
+    "documentCheck": {
+      "pageCount": 39,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod9",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_9.PDF",
+    "protocolLines": [
+      13
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": "9",
+    "pdfFile": "pdf/253-20250213-dod9.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_9.PDF"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "1ac133de61da205e18a3758ce4945499487cd8b1b5da12cd7cae9b161868d9aa",
+    "previousSha256": null,
+    "bytes": 1825289,
+    "fetchedAt": "2026-11-17T14:36:15.811Z",
+    "checkedAt": "2026-11-17T14:48:45.902Z",
+    "documentCheck": {
+      "pageCount": 28,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod.pdf",
+    "protocolLines": [
+      14
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/253-20250213-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "6e69bee3aaf3e32636ea291bf7fe5cd4f115f7448fa6442ceacab54b9a9b5f22",
+    "previousSha256": null,
+    "bytes": 3026775,
+    "fetchedAt": "2026-11-17T14:36:16.315Z",
+    "checkedAt": "2026-11-17T14:48:46.611Z",
+    "documentCheck": {
+      "pageCount": 51,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "253-20250213-dod10",
+    "url": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_10.PDF",
+    "protocolLines": [
+      15
+    ],
+    "orderNumber": "253",
+    "orderDate": "2025-02-13",
+    "dateSource": "document",
+    "annex": "10",
+    "pdfFile": "pdf/253-20250213-dod10.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/604459a8-be75-4773-98bf-bc7d6c2f98b8/dn_253_13022025_dod_10.PDF"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "75fdfddbb3c9a366674812cbc411e91173fd1561e105f3fd34a155ae718c8ee6",
+    "previousSha256": null,
+    "bytes": 1147874,
+    "fetchedAt": "2026-11-17T14:36:16.528Z",
+    "checkedAt": "2026-11-17T14:48:46.945Z",
+    "documentCheck": {
+      "pageCount": 17,
+      "orderNumber": "253",
+      "orderDate": "2025-02-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1237-20240722-dod3",
+    "url": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_22072024_dod_3.pdf",
+    "protocolLines": [
+      20
+    ],
+    "orderNumber": "1237",
+    "orderDate": "2024-07-22",
+    "dateSource": "filename",
+    "annex": "3",
+    "pdfFile": "pdf/1237-20240722-dod3.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_22072024_dod_3.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "50b0fa5d5984031030e63ec551747f836d746d11858d549d48885e8ceb28d468",
+    "previousSha256": null,
+    "bytes": 1165107,
+    "fetchedAt": "2026-11-17T14:36:16.821Z",
+    "checkedAt": "2026-11-17T14:48:47.149Z",
+    "documentCheck": {
+      "pageCount": 26,
+      "orderNumber": "1237",
+      "orderDate": "2024-07-16",
+      "mismatches": [
+        "file name date 2024-07-22, document date 2024-07-16"
+      ]
+    }
+  },
+  {
+    "id": "1237-20240722-dod4",
+    "url": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_22072024_dod_4.pdf",
+    "protocolLines": [
+      21
+    ],
+    "orderNumber": "1237",
+    "orderDate": "2024-07-22",
+    "dateSource": "filename",
+    "annex": "4",
+    "pdfFile": "pdf/1237-20240722-dod4.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_22072024_dod_4.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "16acfa363dd8a0fce80135846f1e7310c574c6746acc28d03efb1cb8adbaa13a",
+    "previousSha256": null,
+    "bytes": 1626869,
+    "fetchedAt": "2026-11-17T14:36:17.131Z",
+    "checkedAt": "2026-11-17T14:48:47.433Z",
+    "documentCheck": {
+      "pageCount": 27,
+      "orderNumber": "1237",
+      "orderDate": "2024-07-16",
+      "mismatches": [
+        "file name date 2024-07-22, document date 2024-07-16"
+      ]
+    }
+  },
+  {
+    "id": "1237-20240716-dod",
+    "url": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_16072024_dod.pdf",
+    "protocolLines": [
+      22
+    ],
+    "orderNumber": "1237",
+    "orderDate": "2024-07-16",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1237-20240716-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_16072024_dod.pdf"
+    },
+    "warnings": [
+      "file-name date 2024-07-16 differs from sibling annexes of order 1237 (2024-07-22); order date must come from the document"
+    ],
+    "validity": "unknown",
+    "sha256": "52e5280d528c8b8a11e03cc72e5d7aabe3aa7e68b22a973c5ae4b02c7f5dd9da",
+    "previousSha256": null,
+    "bytes": 2192954,
+    "fetchedAt": "2026-11-17T14:36:17.512Z",
+    "checkedAt": "2026-11-17T14:48:47.798Z",
+    "documentCheck": {
+      "pageCount": 33,
+      "orderNumber": "1237",
+      "orderDate": "2024-07-16",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1237-20240722-dod6",
+    "url": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_22072024_dod_6.pdf",
+    "protocolLines": [
+      23
+    ],
+    "orderNumber": "1237",
+    "orderDate": "2024-07-22",
+    "dateSource": "filename",
+    "annex": "6",
+    "pdfFile": "pdf/1237-20240722-dod6.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/d5678e39-e7f0-4484-8d8c-8cccf52da4e6/dn_1237_22072024_dod_6.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "5655f3342b5feee763ae112ff2eda6824a243ef2a6cb13da8345b0d94096f9f0",
+    "previousSha256": null,
+    "bytes": 977536,
+    "fetchedAt": "2026-11-17T14:36:17.703Z",
+    "checkedAt": "2026-11-17T14:48:48.027Z",
+    "documentCheck": {
+      "pageCount": 13,
+      "orderNumber": "1237",
+      "orderDate": "2024-07-16",
+      "mismatches": [
+        "file name date 2024-07-22, document date 2024-07-16"
+      ]
+    }
+  },
+  {
+    "id": "1555-20251013-dod",
+    "url": "https://moz.gov.ua/storage/uploads/36c58caf-e0e1-4821-ad6f-338e85b77d8e/dn_1555_13102025_dod.pdf",
+    "protocolLines": [
+      24
+    ],
+    "orderNumber": "1555",
+    "orderDate": "2025-10-13",
+    "dateSource": "document",
+    "annex": null,
+    "pdfFile": "pdf/1555-20251013-dod.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/36c58caf-e0e1-4821-ad6f-338e85b77d8e/dn_1555_13102025_dod.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "3f44d0d357e8d02e214f1153de3c886597ab7aa384009829f28b3bacd970743c",
+    "previousSha256": null,
+    "bytes": 1177702,
+    "fetchedAt": "2026-11-17T14:36:17.926Z",
+    "checkedAt": "2026-11-17T14:48:48.343Z",
+    "documentCheck": {
+      "pageCount": 30,
+      "orderNumber": "1555",
+      "orderDate": "2025-10-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1555-20251013-dod3",
+    "url": "https://moz.gov.ua/storage/uploads/36c58caf-e0e1-4821-ad6f-338e85b77d8e/dn_1555_13102025_dod_3.pdf",
+    "protocolLines": [
+      25
+    ],
+    "orderNumber": "1555",
+    "orderDate": "2025-10-13",
+    "dateSource": "document",
+    "annex": "3",
+    "pdfFile": "pdf/1555-20251013-dod3.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/36c58caf-e0e1-4821-ad6f-338e85b77d8e/dn_1555_13102025_dod_3.pdf"
+    },
+    "warnings": [],
+    "validity": "unknown",
+    "sha256": "74f911aa28a2332eeb86b26cc61af131f6c5da05b06d05d2a713b6c98b91549e",
+    "previousSha256": null,
+    "bytes": 1038546,
+    "fetchedAt": "2026-11-17T14:36:18.146Z",
+    "checkedAt": "2026-11-17T14:48:48.548Z",
+    "documentCheck": {
+      "pageCount": 45,
+      "orderNumber": "1555",
+      "orderDate": "2025-10-13",
+      "mismatches": []
+    }
+  },
+  {
+    "id": "1555-20251013-dod4",
+    "url": "https://moz.gov.ua/storage/uploads/36c58caf-e0e1-4821-ad6f-338e85b77d8e/dn_1555_13102025_dod_4.pdf",
+    "protocolLines": [
+      26,
+      27
+    ],
+    "orderNumber": "1555",
+    "orderDate": "2025-10-13",
+    "dateSource": "document",
+    "annex": "4",
+    "pdfFile": "pdf/1555-20251013-dod4.pdf",
+    "attribution": {
+      "publisher": "Міністерство охорони здоровʼя України (moz.gov.ua)",
+      "sourceUrl": "https://moz.gov.ua/storage/uploads/36c58caf-e0e1-4821-ad6f-338e85b77d8e/dn_1555_13102025_dod_4.pdf"
+    },
+    "warnings": [
+      "URL listed on lines 26, 27; ingested once (resolution tracked in A3-05)"
+    ],
+    "validity": "unknown",
+    "sha256": "89848d9db4b0edcfe546dcf976c326c9b890f60f392b409937fa83c6f896f4bc",
+    "previousSha256": null,
+    "bytes": 372050,
+    "fetchedAt": "2026-11-17T14:36:18.276Z",
+    "checkedAt": "2026-11-17T14:48:48.630Z",
+    "documentCheck": {
+      "pageCount": 16,
+      "orderNumber": "1555",
+      "orderDate": "2025-10-13",
+      "mismatches": []
+    }
+  }
+]
