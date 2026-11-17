@@ -1,3 +1,5 @@
+import type { AnswerFlag } from '@/features/chat/parse-answer-flag';
+
 export type ChatRole = 'user' | 'assistant';
 
 export type ApiMessage = {
@@ -11,15 +13,44 @@ export type UserMessage = {
   content: string;
 };
 
+export type AnswerSource = {
+  id: string;
+  title: string;
+  orderNumber: string;
+  orderDate: string;
+  page?: string;
+  url: string;
+  isValidityVerified: boolean;
+};
+
 export type AssistantMessage = {
   id: string;
   role: 'assistant';
   content: string;
-} & ({ status: 'streaming' } | { status: 'done' } | { status: 'error'; error: string });
+  flag: AnswerFlag | null;
+  sources: AnswerSource[];
+} & (
+  | { status: 'streaming' }
+  | { status: 'done' }
+  | { status: 'stopped' }
+  | { status: 'error'; error: string }
+);
 
 export type ChatMessage = UserMessage | AssistantMessage;
 
+export type ChatCitation = {
+  id: string;
+  orderNumber: string;
+  orderDate: string;
+  title: string;
+  page: number;
+  url: string;
+  validity: string;
+};
+
 export type ChatStreamEvent =
+  | { type: 'flag'; flag: AnswerFlag }
   | { type: 'delta'; text: string }
+  | { type: 'citations'; items: ChatCitation[] }
   | { type: 'done'; stopReason: string }
   | { type: 'error'; message: string };

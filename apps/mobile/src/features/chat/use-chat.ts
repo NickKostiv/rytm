@@ -50,7 +50,7 @@ export function useChat(): {
     try {
       for await (const event of streamChat(history, controller.signal)) {
         if (controller.signal.aborted) return;
-        hasFinished = event.type !== 'delta';
+        hasFinished = event.type === 'done' || event.type === 'error';
         updateAssistant(assistantId, (message) => applyStreamEvent(message, event));
       }
       if (!controller.signal.aborted && !hasFinished) {
@@ -73,6 +73,8 @@ export function useChat(): {
       id: createId(),
       role: 'assistant',
       content: '',
+      flag: null,
+      sources: [],
       status: 'streaming',
     };
     setMessages([...history, userMessage, assistantMessage]);
@@ -82,18 +84,25 @@ export function useChat(): {
   const retryMessage = (assistantId: string) => {
     const index = messages.findIndex((message) => message.id === assistantId);
     if (index === -1 || isStreaming) return;
-    updateAssistant(assistantId, (message) => ({ ...message, content: '', status: 'streaming' }));
+    updateAssistant(assistantId, (message) => ({
+      ...message,
+      content: '',
+      flag: null,
+      sources: [],
+      status: 'streaming',
+    }));
     void runTurn(toApiMessages(messages.slice(0, index)), assistantId);
   };
 
   const stopStreaming = () => {
     abortControllerRef.current?.abort();
     if (!lastMessage || lastMessage.role !== 'assistant') return;
-    updateAssistant(lastMessage.id, (message) =>
-      message.content
-        ? { ...message, status: 'done' }
-        : { ...message, status: 'error', error: COPY.stopped },
-    );
+    updateAssistant(lastMessage.id, (message) => {
+      if (message.status !== 'streaming') return message;
+      return message.content
+        ? { ...message, status: 'stopped' }
+        : { ...message, status: 'error', error: COPY.stoppedEmpty };
+    });
   };
 
   return { messages, isStreaming, sendMessage, retryMessage, stopStreaming };

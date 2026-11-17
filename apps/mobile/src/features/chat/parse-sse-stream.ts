@@ -1,4 +1,5 @@
-import type { ChatStreamEvent } from '@/features/chat/types';
+import { toFlagLevel } from '@/features/chat/parse-answer-flag';
+import type { ChatCitation, ChatStreamEvent } from '@/features/chat/types';
 
 const FRAME_SEPARATOR = '\n\n';
 
@@ -13,10 +14,46 @@ function readStringField(payload: unknown, field: string): string {
   return payload[field];
 }
 
+function readNumberField(payload: unknown, field: string): number {
+  if (!isRecord(payload) || typeof payload[field] !== 'number') {
+    throw new Error(`Malformed "${field}" in stream event`);
+  }
+  return payload[field];
+}
+
+function readFlagEvent(payload: unknown): ChatStreamEvent {
+  const level = toFlagLevel(readStringField(payload, 'level'));
+  if (!level) throw new Error('Malformed "level" in stream event');
+  return { type: 'flag', flag: { level, explanation: readStringField(payload, 'explanation') } };
+}
+
+function toCitation(item: unknown): ChatCitation {
+  return {
+    id: readStringField(item, 'id'),
+    orderNumber: readStringField(item, 'orderNumber'),
+    orderDate: readStringField(item, 'orderDate'),
+    title: readStringField(item, 'title'),
+    page: readNumberField(item, 'page'),
+    url: readStringField(item, 'url'),
+    validity: readStringField(item, 'validity'),
+  };
+}
+
+function readCitationsEvent(payload: unknown): ChatStreamEvent {
+  if (!isRecord(payload) || !Array.isArray(payload.items)) {
+    throw new Error('Malformed "items" in stream event');
+  }
+  return { type: 'citations', items: payload.items.map(toCitation) };
+}
+
 function toStreamEvent(eventName: string, payload: unknown): ChatStreamEvent | null {
   switch (eventName) {
+    case 'flag':
+      return readFlagEvent(payload);
     case 'delta':
       return { type: 'delta', text: readStringField(payload, 'text') };
+    case 'citations':
+      return readCitationsEvent(payload);
     case 'done':
       return { type: 'done', stopReason: readStringField(payload, 'stopReason') };
     case 'error':
