@@ -157,6 +157,16 @@ Setup: copy `apps/api/.env.example` to `apps/api/.env` and set `ANTHROPIC_API_KE
 
 Install mobile dependencies with `npx expo install`, never plain `pnpm add`.
 
+## Git
+
+Applies to every agent in this repo and overrides the owner's global "I commit myself" rule.
+
+- When the owner asks for a commit, run `git add` and `git commit` yourself. Do not ask again whether to do it.
+- Never `git push`. The owner pushes.
+- No `Co-Authored-By: Claude` trailer, no other AI attribution and no `QA:` line. Message: Conventional Commits subject plus optional bullets.
+- Stage only the files that belong to the change, by path. Never `git add -A` or `git add .`: the working tree usually holds other sessions' work.
+- Do not commit without being asked.
+
 ## Conventions specific to this repo
 
 - `apps/mobile`: kebab-case file names, `@/` import alias, route files default-export (Expo Router requires it), everything else named exports. No manual `useMemo` / `useCallback` / `memo` — React Compiler handles it.
