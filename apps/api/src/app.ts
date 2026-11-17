@@ -7,7 +7,11 @@ import type { SSEStreamingApi } from 'hono/streaming';
 import { parseChatRequest } from './chatRequest.js';
 import type { ChatMessage } from './chatRequest.js';
 import { REFUSAL_MESSAGE, toUserSafeChatError } from './chatErrorMessage.js';
-import { startClaudeChatStream } from './claudeChatStream.js';
+import { writeEvent } from './chatSse.js';
+import { startClaudeChatStream, startGroundedChatStream } from './claudeChatStream.js';
+import { pipeGroundedReply } from './grounding/groundedReply.js';
+import type { GroundedDependencies } from './grounding/groundedReply.js';
+import { createLazySourceIndex } from './retrieval/sourceIndex.js';
 
 const HTTP_BAD_REQUEST = 400;
 const REFUSAL_STOP_REASON = 'refusal';
@@ -19,9 +23,6 @@ const readJsonBody = async (c: Context): Promise<unknown> => {
     return undefined;
   }
 };
-
-const writeEvent = (sse: SSEStreamingApi, event: string, payload: object): Promise<void> =>
-  sse.writeSSE({ event, data: JSON.stringify(payload) });
 
 const pipeClaudeReply = async (sse: SSEStreamingApi, client: Anthropic, messages: ChatMessage[]): Promise<void> => {
   const claudeStream = startClaudeChatStream(client, messages);
@@ -44,7 +45,12 @@ const pipeClaudeReply = async (sse: SSEStreamingApi, client: Anthropic, messages
   }
 };
 
-export const createApp = (client: Anthropic): Hono => {
+const createGroundedDependencies = (client: Anthropic): GroundedDependencies | null =>
+  process.env.GROUNDED_MODE === '1'
+    ? { getSourceIndex: createLazySourceIndex(), startStream: (messages) => startGroundedChatStream(client, messages) }
+    : null;
+
+export const createApp = (client: Anthropic, grounded = createGroundedDependencies(client)): Hono => {
   const app = new Hono();
   app.use('*', cors());
   app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -53,7 +59,9 @@ export const createApp = (client: Anthropic): Hono => {
     if (parsed.status === 'invalid') {
       return c.json({ error: parsed.error }, HTTP_BAD_REQUEST);
     }
-    return streamSSE(c, (sse) => pipeClaudeReply(sse, client, parsed.messages));
+    return streamSSE(c, (sse) =>
+      grounded ? pipeGroundedReply(sse, parsed.messages, grounded) : pipeClaudeReply(sse, client, parsed.messages),
+    );
   });
   return app;
 };
