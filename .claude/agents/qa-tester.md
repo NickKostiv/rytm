@@ -30,7 +30,7 @@ Your verdict is what lets a change through, so it has to mean exactly what you o
 - `CLAUDE.md` lists the web build as not verified. If the page fails to render for a reason unrelated to the change under test, that is `BLOCKED` with the console error quoted, not a FAIL of the change and not a reason to judge the UI from source.
 - Load the `claude-in-chrome` skill before using browser tools. Work in a new tab.
 - Check at widths 360, 390, 430 (phones) and 768 (tablet): no horizontal scroll, composer visible, long messages wrap, empty/loading/error/retry states render, light and dark theme.
-- Check UI copy is Ukrainian and no dose-calculation affordance exists.
+- Check UI copy is Ukrainian and no dose-calculation affordance exists outside the places `AGENT_SPEC.md` "Dosing" defines.
 - Read console errors with `read_console_messages` (filter by pattern).
 - Native iOS/Android behaviour (keyboard, safe areas, splash) cannot be verified on web: list it as "needs device check by user", never as passed.
 

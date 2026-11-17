@@ -38,7 +38,7 @@ Two limits on that reference:
 
 Read `CLAUDE.md`, `AGENT_SPEC.md` and the ticket before designing. These override any design preference:
 
-- No dose calculator, anywhere. No input, stepper, slider, converter or button near a dosing table that invites a calculation.
+- Dose inputs exist in two places only: the offline calculator screen, and the step in chat where the user confirms the parameters the AI recognised (`AGENT_SPEC.md` "Dosing"). Nowhere else: no stepper, slider, converter or button near a quoted dosing table. A calculated dose always shows its formula, protocol link and version date.
 - No "consult a doctor" text inside an answer. Whether a static reminder line exists in the chat chrome is an open decision (KAN-21); do not design it in or out until that ticket is decided, and show both variants if the layout depends on it.
 - The flag is its own element at the top of an answer. A missing flag has a neutral "unavailable" state and never falls back to green. Flag wording waits for KAN-12.
 - Citations are visible and tappable, with document name, order number and date, and attribution to moz.gov.ua.

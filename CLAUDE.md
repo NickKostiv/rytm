@@ -1,6 +1,6 @@
 # Rytm
 
-AI medical reference for Ukrainian EMS paramedics, in chat form. Answers must come only from official sources (MoH protocols, drug instructions) with citations.
+AI medical reference for Ukrainian EMS paramedics: an online chat plus a planned offline dose calculator. Answers must come only from official sources (MoH protocols, drug instructions) with citations.
 
 Read first:
 
@@ -11,21 +11,44 @@ Read first:
 
 ## Decisions already made
 
-- **No dose calculator.** The assistant never calculates or estimates a dose, with or without a caveat. Dosing questions get the official table quoted and cited; a patient-specific request gets an explicit refusal plus the table.
+- **Doses are calculated by deterministic code, never by the LLM** (decided 2026-11-17, third and current version; it replaces both "no dose calculator" and "the LLM calculates, the backend verifies"). Full contract: AGENT_SPEC.md "Dosing". Nothing of this is built yet.
+  - **Dosing rules** are structured records transcribed from the MoH protocols by a person and approved by a named clinician: drug, indication, route, per-kg dose or fixed dose per weight / age band, maximum dose, concentration, repeat interval, source document, page and version date. No approved rule → no number.
+  - **One calculator** applies a rule to the patient's parameters. It is a single implementation shared by the backend and the app (planned `packages/dosing`), so both modes give the same result.
+  - **Online mode (chat):** the AI recognises the parameters in the message (drug, age, weight, condition) and adds short text with protocol quotes and citations. The app shows the recognised parameters for the user to confirm, then the backend calculator computes the dose. The dose block comes from the calculator, not from model text.
+  - **Offline mode (calculator screen):** a form where the user picks the condition and drug and enters age, weight and state; the same calculator runs on the device with a bundled rule set. No AI, no network.
+  - A missing parameter is asked for, never assumed. The calculator checks limits (maximum single dose, implausible weight for the age).
+  - Every calculated dose shows the formula as applied, the protocol link and the protocol version date.
+  - In AI text, numbers appear only as verbatim quotes from cited fragments (the existing number check stays). Foreign guidelines (UK Resus Council, ERC) may be quoted as a labelled comparison once ingested; dosing rules come from the MoH base only.
+  - The flag stays the first line of a medical answer and sources stay at the end. An answer with no sources (a greeting, a question about Rytm itself) carries no flag explanation boilerplate and no sources block (KAN-90).
+
+## Building it so the stores approve it
+
+Recommendations collected on 2026-11-17 from the guideline text and reported review practice. Not an official Apple position, and no guarantee.
+
+1. **Publisher.** App Store guideline 1.4.2 requires a drug dosage calculator to come from a hospital, university, pharmacy, manufacturer, insurer or other approved entity, or to have regulator approval. The offline calculator screen is plainly such a calculator, so this applies in full.
+   - Publish from the organisation account of a hospital, medical university or EMS centre.
+   - If that is impossible, attach an official letter from such an institution stating that it approves the clinical content.
+   - Name the clinical reviewers (physician, pharmacist) in the store description and inside the app.
+   - Without one of these the rest helps little. Tracked in KAN-9 and KAN-19.
+2. **AI is the interface, not the source of numbers.** This is the architecture in "Decisions already made": the AI only recognises the request; the rule comes from the approved base; deterministic code calculates; the recognised parameters are confirmed by the user; limits are checked; a drug or condition missing from the base gets a refusal; every answer carries the protocol link, its version date and the formula.
+3. **Access and submission.** Verify that users are medical professionals (KAN-22) and describe the calculator honestly in Review Notes (KAN-19). Fallback if public review fails: distribution to specific services, or a web app.
+4. **Separate from Apple:** whether this software is a medical device under Ukrainian law must be settled with a lawyer before release (KAN-13).
 - **Claude via Messages API on our own backend**, not Managed Agents. The API key lives only in `apps/api/.env`; never in `apps/mobile` or any `EXPO_PUBLIC_*` variable.
 - **Flag (GREEN / YELLOW / RED)** will be computed on the backend from deterministic signals plus model self-assessment. Today the model only writes it as the first text line.
 - Legal texts (terms, privacy, medical disclaimer) exist as drafts outside the repo; the consent screen is not built. Polishing is postponed.
 
 ## Backlog
 
-The MVP backlog lives in Jira project `KAN` on `rytm.atlassian.net`. Created on 2026-11-17: 5 Epics, 81 tickets, 161 `Blocks` links. Planning only; no code was changed.
+The MVP backlog lives in Jira project `KAN` on `rytm.atlassian.net`. Created on 2026-11-17: 5 Epics, 81 tickets, 161 `Blocks` links. Added later the same day under KAN-7, without `Blocks` links: KAN-90 (no flag on non-medical answers) and KAN-91 (detect new and superseded MoH orders).
+
+The dosing tickets (KAN-10, KAN-12, KAN-36, KAN-63, KAN-64, KAN-73) still describe the second version of the dosing decision ("the LLM calculates, the backend verifies"). They are stale against "Decisions already made" until rewritten. No tickets exist yet for the dosing rule base, the shared calculator, the parameter-confirmation step or the offline calculator screen.
 
 | Epic | Key | Children |
 |------|-----|----------|
 | Launch readiness: store review, regulatory and legal risks | KAN-4 | KAN-9 … KAN-24 |
 | App identity, splash screen and launch hand-off | KAN-5 | KAN-25 … KAN-31 |
 | Chat UI for the field-reference MVP | KAN-6 | KAN-32 … KAN-48 |
-| Ground the chat backend in the official MoH source base | KAN-7 | KAN-49 … KAN-76 |
+| Ground the chat backend in the official MoH source base | KAN-7 | KAN-49 … KAN-76, KAN-90, KAN-91 |
 | Consent, medical disclaimer and sign-in gate | KAN-8 | KAN-77 … KAN-89 |
 
 Each ticket description starts with a local id (`A0-01` … `A4-14`) used for cross-references in ticket text. KAN-1 … KAN-3 are Jira template placeholders, unrelated.
@@ -43,6 +66,11 @@ Unblocked today: KAN-32, KAN-34, KAN-37, KAN-74, KAN-78, KAN-79.
 Findings from planning that are not in the code or the specs:
 
 - Research suggests the product as designed may qualify as medical device software (AGENT_SPEC RED asking for patient age / weight, YELLOW "recommendations", the per-answer flag). This is an inference, not a legal opinion; the MDCG quotes came from an unofficial copy. Tracked in KAN-13.
+- The 2026-11-17 dose-calculation decision adds a patient-specific output, which makes the device inference stronger and the Anthropic "general information" exclusion less likely to apply (KAN-13, KAN-14).
+- App Store guideline 1.4.2 (read 2026-11-17): drug dosage calculators must come from a manufacturer, hospital, university, insurer, pharmacy or other approved entity, or have regulator approval. Apple does not define whether a chat counts; a calculator form does. Tracked in KAN-19. Google Play has no equivalent rule but its "not a medical device" disclaimer becomes harder to justify (KAN-20).
+- App Store search for "pedi help" on 2026-11-17 returned five dosing-related apps: three from institutions (a professional society, a university, a hospital network) and two from private LLCs, one of them released in 2024. Judged by names and sellers only, the apps were not opened. Pedi Help (id 1019521365), an individual developer's calculator, is no longer listed in any of five countries checked; the reason is unknown.
+- The MoH anaphylaxis protocol (section 3.4 in the ingested base) gives epinephrine as a fixed dose per weight band (25 kg or more / under 25 kg), not per kg. The reference answer pasted into KAN-63 uses a per-kg dose and reaches a different number for the same child. Dosing rules must support fixed-dose bands, and that reference is a format example only.
+- Foreign guidelines are not in `protocols.md`, their reuse rights are unknown (KAN-15), and no ingestion ticket exists for them.
 - `protocols.md` lines 26 and 27 are the same URL. Annexes 2 and 5 of order 1555 exist on moz.gov.ua and are not listed. Open question to the product owner in KAN-53.
 - `protocols.md` lines 16–19 (order 714) look like image-only scans, judged by a byte-level heuristic without a PDF library. They need OCR plus human review (KAN-57).
 - AGENT_SPEC conflicts with itself and with the streaming contract: the backend must reject dosing answers with unverified numbers, which is only possible after generation; and "every answer starts with a flag" cannot hold for a flag computed after generation. Decided in KAN-64 / KAN-67.
@@ -83,7 +111,7 @@ pnpm monorepo, Node 22.
 |------|------|
 | `apps/api` | `@rytm/api` — Hono + `@hono/node-server`, TypeScript ESM, `@anthropic-ai/sdk` |
 | `apps/mobile` | `@rytm/mobile` — Expo SDK 58, React Native 0.88, Expo Router, React Compiler on |
-| `packages/*` | planned, empty. Chat contract types are duplicated in both apps for now |
+| `packages/*` | planned, empty. Chat contract types are duplicated in both apps for now. `packages/dosing` (dosing rules plus the calculator, shared by both apps) is planned here |
 
 ### apps/api/src
 
@@ -105,10 +133,16 @@ pnpm monorepo, Node 22.
 - `GET /health` → `200 {"status":"ok"}`
 - `POST /chat`, body `{ "messages": [{ "role": "user" | "assistant", "content": string }] }`, full history each time, last message from `user`
 - Invalid body → `400 {"error": string}` as JSON
-- Valid → `text/event-stream`:
+- Valid → `text/event-stream`. Legacy mode (default, `GROUNDED_MODE` unset):
   - `event: delta` / `data: {"text": string}` — many
   - `event: done` / `data: {"stopReason": string}` — once on success
   - `event: error` / `data: {"message": string}` — then the stream closes; a model refusal is sent as `error`
+- Grounded mode (`GROUNDED_MODE=1` in `apps/api/.env`): the answer is buffered and number-checked on the server (decided 2026-11-17: buffer, no retract; flag sent first as its own event), then:
+  1. `event: flag` / `{"level": "GREEN"|"YELLOW"|"RED", "explanation": string}`; an unparseable flag line becomes RED «Рівень не визначено моделлю»
+  2. `event: delta` / `{"text": string}` — body without the flag line; one today, clients must accept many
+  3. `event: citations` / `{"items": [{"id", "orderNumber", "orderDate": "YYYY-MM-DD", "annex": string|null, "title": section heading, "page": number, "url": "https://moz.gov.ua/…#page=N", "attribution": "moz.gov.ua", "validity": "unknown"|"in_force"}]}` — once, deduplicated, may be empty
+  4. `event: done` / `{"stopReason": string}` — model stop reason, `"no_sources"` (RED «відповіді немає в базі джерел») or `"withheld"` (RED, a number in a text block is not in the fragments that block cites; body is the cited tables verbatim or a fixed sentence)
+  - `event: error` replaces all of the above when the source base fails to load, the API fails or the model refuses
 
 ## Commands
 
@@ -154,5 +188,6 @@ Known baseline errors, inherited from the Expo template (not regressions):
 - No source base: no ingestion, retrieval or citations. The assistant cannot answer medical questions yet.
 - The model writes markdown (`**bold**`, lists); the app renders plain text, so the markup shows as-is.
 - No consent screen, auth, persistence or database.
-- The README still mentions a dose calculator; it is outdated.
+- No dosing rule base, no calculator, no parameter-confirmation step and no offline mode exist in code. Until they do, the running assistant keeps today's behaviour: it refuses to calculate and quotes the protocol. `systemPrompt.ts` already matches the rule "the LLM never calculates"; it changes only when the calculator is wired in.
+- Offline mode has no design yet: how the bundled rule set is updated, how a stale rule set is shown, and whether it ships in the MVP are open.
 - `apps/mobile/package.json` gained `eslint` and `eslint-config-expo`, auto-installed by `expo lint`.

@@ -17,7 +17,8 @@ Phase 1 ships first; Phase 2 must not be designed into Phase 1 code prematurely.
 
 - **AI chat** over the official source base (RAG: retrieval over indexed documents + LLM answer generation).
 - **Citations** in every answer: document name, section/page, link to the official source.
-- **Dosing tables** — dosing questions are answered with the table from the official source, quoted and cited. No dose calculator; the assistant never calculates or estimates a patient-specific dose.
+- **Dosing** — a deterministic calculator produces the patient-specific dose from dosing rules transcribed from the MoH protocols and approved by a clinician. The AI never calculates: online it recognises the parameters and quotes the protocol, and the backend calculator computes. Details: [AGENT_SPEC.md](AGENT_SPEC.md) "Dosing".
+- **Offline calculator** — a form (condition, drug, age, weight, state) that runs the same calculator on the device with no AI and no network.
 - **Response flag** — every answer starts with GREEN / YELLOW / RED and an explanation. Details: [AGENT_SPEC.md](AGENT_SPEC.md).
 - **Authentication is mandatory** — no anonymous access to the app or the API.
 
@@ -36,7 +37,7 @@ Backend responsibilities: auth, chat API, LLM integration, source ingestion and 
 ## Product principles
 
 - **Source-grounded only.** Every factual claim maps to a cited source; no source → no answer.
-- **No calculated doses.** Dosing numbers are only quoted from sources, never computed or estimated.
+- **The AI is the interface, not the source of numbers.** A dose is either quoted from a source or computed by deterministic code from an approved rule; the LLM never computes or estimates one.
 - **Source freshness.** Each document has a version/date; outdated protocols are replaced, not mixed.
 - **Medical safety.** Clear disclaimer; the app supports clinical decisions, it does not replace them.
 - **Privacy.** No patient PII in chat logs or LLM requests.
@@ -56,4 +57,6 @@ Each open item below has a decision ticket in Jira project `KAN`; the map is in 
 - Vector store / database.
 - Auth method (email + password, OAuth, magic link) and who may register in Phase 1 (open sign-up vs verified paramedics).
 - Source list for v1 and ingestion format (PDF, HTML).
+- Publisher for the stores: App Store guideline 1.4.2 expects a dosage calculator to come from a hospital, university or similar approved entity. See CLAUDE.md "Building it so the stores approve it".
+- Offline mode: whether it is in the MVP, and how its bundled dosing rules are kept current.
 - Clinical use status: README currently says "Demo project. Not for clinical use." — must be revisited before real-world use.

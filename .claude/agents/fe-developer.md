@@ -18,7 +18,7 @@ Rules:
 - Edit only the files in your brief. If the task needs another file, say which and why in your report instead of silently expanding scope.
 - kebab-case file names, `@/` imports, named exports except route files. No manual `useMemo`/`useCallback`/`memo` (React Compiler).
 - No code comments, max one line when critical. No `any`, casts, `@ts-ignore` or `eslint-disable`.
-- UI copy in Ukrainian. Never add any dose calculation or input that invites one.
+- UI copy in Ukrainian. Dose arithmetic lives only in the shared dose calculator; never write it in a component or hook, and add dose inputs only where `AGENT_SPEC.md` "Dosing" defines them.
 - Async UI covers loading, error with retry, cancel (last request wins) and unmount cleanup.
 - Install dependencies only with `npx expo install`, and only if the brief allows a new dependency.
 - Never commit, never run simulators or devices.

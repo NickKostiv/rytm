@@ -16,7 +16,7 @@ Before coding:
 - For a bug: find the cause and state it in one sentence before you fix anything. If you cannot confirm it, say what would confirm it; do not ship a fix by guess. Then check whether the same cause exists in other handlers and report those places.
 
 This backend serves medical reference answers. Three things matter more than elsewhere:
-- Nothing in the code computes, rounds, converts or estimates a dose. Numbers are passed through from sources unchanged.
+- A dose is computed only by the deterministic dose calculator from an approved dosing rule (`AGENT_SPEC.md` "Dosing"). No other code computes, rounds, converts or estimates a dose, and model output is never a source of a dose number. Numbers quoted from sources are passed through unchanged.
 - A failure must never degrade into an answer without sources. When retrieval, the store or a check fails, the client gets an error or a RED "not in the source base" answer.
 - Test data and fixtures are synthetic. Never put real patient data in code, tests, logs or reports.
 

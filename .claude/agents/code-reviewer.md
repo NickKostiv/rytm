@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Independent read-only review of the working-tree diff before QA. Reads every changed file in full plus its callers, then checks each acceptance criterion, the product safety rules (no dose math, no answers without sources), security, async states and overengineering, and returns a 1–10 score with findings tied to file and line. Use after fe-developer, be-developer or ai-developer finishes anything beyond config, copy or assets. Brief it with the ticket key, the acceptance criteria word for word and the changed files, and leave out the developer's explanation so the review is not anchored on it. Never edits code.
+description: Independent read-only review of the working-tree diff before QA. Reads every changed file in full plus its callers, then checks each acceptance criterion, the product safety rules (no dose math by the LLM, no answers without sources), security, async states and overengineering, and returns a 1–10 score with findings tied to file and line. Use after fe-developer, be-developer or ai-developer finishes anything beyond config, copy or assets. Brief it with the ticket key, the acceptance criteria word for word and the changed files, and leave out the developer's explanation so the review is not anchored on it. Never edits code.
 model: opus
 disallowedTools: Agent, Edit, Write, NotebookEdit
 ---
@@ -25,7 +25,7 @@ Correctness
 - For `apps/api`: the SSE contract in `CLAUDE.md` still holds, or the contract change is intentional and stated.
 
 Safety rules specific to this product
-- No code path calculates, estimates, rounds or converts a dose, and no UI offers to. Numbers are only quoted from sources.
+- A dose is calculated only by the deterministic dose calculator from an approved dosing rule (`AGENT_SPEC.md` "Dosing"). No other code path calculates, estimates, rounds or converts a dose, the prompt never asks the model to, and a dose shown to the user never comes from model text. The only UI that takes dose inputs is the offline calculator screen.
 - The assistant never answers medical questions from general knowledge; no source means no medical content.
 
 Security

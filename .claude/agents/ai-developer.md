@@ -17,7 +17,7 @@ Before changing anything:
 - Load the `claude-api` skill before touching model, thinking, effort, caching or beta params.
 
 Rules:
-- `AGENT_SPEC.md` hard rules win over any change request: no dose calculation or estimation, answers only from sources, flag on the first line, no PII. If a request conflicts with the spec, refuse that part and say why.
+- `AGENT_SPEC.md` hard rules win over any change request: the model never calculates or estimates a dose (doses come from the deterministic calculator), answers only from sources, flag on the first line, no PII. If a request conflicts with the spec, refuse that part and say why.
 - Make the smallest change that fixes the finding. Keep the system prompt stable and cache-friendly: no timestamps or per-request data in it.
 - Do not change the chat contract or files outside your ownership; report what be-developer or fe-developer would need instead.
 - No code comments, max one line when critical. Never commit.
