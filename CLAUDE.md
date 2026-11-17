@@ -16,6 +16,65 @@ Read first:
 - **Flag (GREEN / YELLOW / RED)** will be computed on the backend from deterministic signals plus model self-assessment. Today the model only writes it as the first text line.
 - Legal texts (terms, privacy, medical disclaimer) exist as drafts outside the repo; the consent screen is not built. Polishing is postponed.
 
+## Backlog
+
+The MVP backlog lives in Jira project `KAN` on `rytm.atlassian.net`. Created on 2026-11-17: 5 Epics, 81 tickets, 161 `Blocks` links. Planning only; no code was changed.
+
+| Epic | Key | Children |
+|------|-----|----------|
+| Launch readiness: store review, regulatory and legal risks | KAN-4 | KAN-9 … KAN-24 |
+| App identity, splash screen and launch hand-off | KAN-5 | KAN-25 … KAN-31 |
+| Chat UI for the field-reference MVP | KAN-6 | KAN-32 … KAN-48 |
+| Ground the chat backend in the official MoH source base | KAN-7 | KAN-49 … KAN-76 |
+| Consent, medical disclaimer and sign-in gate | KAN-8 | KAN-77 … KAN-89 |
+
+Each ticket description starts with a local id (`A0-01` … `A4-14`) used for cross-references in ticket text. KAN-1 … KAN-3 are Jira template placeholders, unrelated.
+
+Decisions that block the most work:
+
+- KAN-22 auth method and professional gating. Blocks sign-in, session, consent order and API auth.
+- KAN-10 intended-purpose statement → KAN-13 regulatory classification opinion → KAN-12 which assistant behaviours to keep. KAN-12 blocks the system prompt (KAN-63), the flag algorithm (KAN-65) and the flag UI (KAN-41).
+- KAN-9 publishing legal entity. Google Play requires an Organization account for medical apps.
+- KAN-21 whether a static medical reminder line appears in the chat UI in addition to the consent screen.
+- KAN-77 first-launch order of consent and sign-in.
+
+Unblocked today: KAN-32, KAN-34, KAN-37, KAN-74, KAN-78, KAN-79.
+
+Findings from planning that are not in the code or the specs:
+
+- Research suggests the product as designed may qualify as medical device software (AGENT_SPEC RED asking for patient age / weight, YELLOW "recommendations", the per-answer flag). This is an inference, not a legal opinion; the MDCG quotes came from an unofficial copy. Tracked in KAN-13.
+- `protocols.md` lines 26 and 27 are the same URL. Annexes 2 and 5 of order 1555 exist on moz.gov.ua and are not listed. Open question to the product owner in KAN-53.
+- `protocols.md` lines 16–19 (order 714) look like image-only scans, judged by a byte-level heuristic without a PDF library. They need OCR plus human review (KAN-57).
+- AGENT_SPEC conflicts with itself and with the streaming contract: the backend must reject dosing answers with unverified numbers, which is only possible after generation; and "every answer starts with a flag" cannot hold for a flag computed after generation. Decided in KAN-64 / KAN-67.
+- Anthropic citations cannot be combined with structured outputs, so the model's flag has to be parsed from text or come from a second call (KAN-65).
+- Found by reading `use-chat.ts`, not by running it: two fast taps on Send may start two requests, and Stop marks a partial answer as `done`. Confirm in KAN-32 before fixing in KAN-38.
+- The reference chat in the `zax` repo ports almost nothing: its markdown parser has no tables or links, and its typewriter and keyboard handling are bound to that app.
+
+## Agents
+
+Project subagents live in `.claude/agents/`. Start a coordinated session with `claude --agent orchestrator`. Defined on 2026-11-17; none has been run on a real ticket yet.
+
+| Agent | Role | Edits code | Model |
+|-------|------|------------|-------|
+| `orchestrator` | Reads a KAN ticket, checks blockers, briefs the others, reports what is verified and what is not | one-liners only | opus |
+| `designer` | UI spec before a screen is built; design review of the Expo web build after | no | opus |
+| `fe-developer` | `apps/mobile` | yes | sonnet by default; orchestrator picks per task |
+| `be-developer` | `apps/api`: endpoints, SSE, auth, persistence, ingestion, retrieval, deterministic checks on answers | yes | opus |
+| `ai-developer` | `systemPrompt.ts` and model params in `claudeChatStream.ts` | yes | opus |
+| `code-reviewer` | Independent review of the diff, 1–10 score, before QA | no | opus |
+| `qa-tester` | Executes the change: API contract via curl, Expo web in Chrome | no | sonnet |
+| `product-manager` | Runs synthetic scenarios against `/chat`, grades answers against `AGENT_SPEC.md` | no | sonnet |
+
+Order for a ticket: `designer` spec (UI tickets only) → developer → `code-reviewer` → `qa-tester` (plus `designer` review if there was a spec). Answer-behaviour tickets loop `product-manager` ↔ `ai-developer`.
+
+Rules shared by all of them:
+
+- A report is a claim until it shows evidence. "Verified" means executed in that session; otherwise "implemented, not run". QA verdicts `PARTIAL` and `BLOCKED` are not a pass.
+- No agent runs a simulator or device. Native iOS / Android behaviour is checked by the owner.
+- QA, design review and `product-manager` need servers the owner starts: `pnpm api` (`:3001`) and `npx expo start --web` (`:8081`). The web build is itself unverified (see Current state), so the first QA or design review may come back `BLOCKED`.
+- `product-manager` runs spend real Anthropic API tokens. Until the source base exists (KAN-7), the assistant returns RED with no medical content, so that loop can only check flag, refusal and format.
+- Only `orchestrator` writes to Jira. Without asking, it may add one closing comment to the ticket it worked and move that ticket to `In Review` (only when the work is done, or implemented with the unverified parts listed). Moving to `Done`, editing fields, and creating, linking or deleting issues still need the owner's confirmation in that session. KAN statuses: `To Do`, `In Progress`, `In Review`, `Done`.
+
 ## Structure
 
 pnpm monorepo, Node 22.
