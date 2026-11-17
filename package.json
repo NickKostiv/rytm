@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "mobile": "pnpm --filter @rytm/mobile start"
+    "mobile": "pnpm --filter @rytm/mobile start",
+    "api": "pnpm --filter @rytm/api dev"
   }
 }
