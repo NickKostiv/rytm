@@ -1,5 +1,7 @@
 import type { AnswerSource } from '@/features/chat/types';
 
+export { BORDER_WIDTH, PILL_RADIUS, TOUCH_TARGET_SIZE } from '@/constants/theme';
+
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export const NARROW_GUTTER = 16;
@@ -11,11 +13,8 @@ export const USER_MESSAGE_RADIUS = 20;
 export const USER_MESSAGE_PADDING_VERTICAL = 10;
 export const ASSISTANT_SECTION_GAP = 12;
 
-export const BORDER_WIDTH = 1;
-export const TOUCH_TARGET_SIZE = 48;
 export const COMPOSER_LINE_HEIGHT = 24;
 export const COMPOSER_MAX_LINES = 5;
-export const PILL_RADIUS = 24;
 export const COMPOSER_FIELD_MIN_HEIGHT = 56;
 export const COMPOSER_FIELD_RADIUS = 28;
 export const COMPOSER_INPUT_PADDING_VERTICAL = 14;
@@ -23,6 +22,10 @@ export const COMPOSER_ACTION_SIZE = 40;
 export const EXAMPLE_ROW_RADIUS = 12;
 export const EXAMPLE_ROW_PADDING_VERTICAL = 12;
 export const RETRY_MIN_WIDTH = 120;
+export const HEADER_ICON_SIZE = 24;
+export const HEADER_TITLE_RESERVED_WIDTH = 168;
+export const HEADER_TITLE_MIN_WIDTH = 140;
+export const HEADER_MAX_FONT_SCALE = 1.6;
 
 export const MARKDOWN_BLOCK_GAP = 12;
 export const MARKDOWN_LIST_ITEM_GAP = 6;
@@ -51,6 +54,9 @@ export const EXAMPLE_QUESTIONS = [
 const NBSP = '\u00A0';
 
 export const COPY = {
+  appTitle: 'Rytm',
+  historyA11y: 'Історія розмов',
+  newChatA11y: 'Новий чат',
   emptyTitle: 'Довідник протоколів МОЗ для бригад ЕМД',
   emptyDescription:
     'Відповідає лише за протоколами МОЗ і показує джерело. Якщо відповіді в базі немає — так і скаже.',
@@ -63,6 +69,7 @@ export const COPY = {
   waiting: 'Готую відповідь…',
   stopped: 'Відповідь зупинено — вона може бути неповною.',
   stoppedEmpty: 'Відповідь зупинено',
+  noAnswer: 'Не отримано відповіді',
   retry: 'Повторити',
   retryA11y: 'Повторити запит',
   tableScrollHint: 'Гортайте таблицю вбік →',

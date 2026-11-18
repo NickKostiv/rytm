@@ -19,6 +19,8 @@ export const Colors = {
     border: '#D6D8DD',
     borderStrong: '#7E838C',
     danger: '#B42318',
+    onDanger: '#FFFFFF',
+    scrim: 'rgba(0,0,0,0.40)',
   },
   dark: {
     text: '#ffffff',
@@ -31,6 +33,8 @@ export const Colors = {
     border: '#34373C',
     borderStrong: '#7A7F87',
     danger: '#FF8A80',
+    onDanger: '#2A0A07',
+    scrim: 'rgba(0,0,0,0.70)',
   },
 } as const;
 
@@ -73,3 +77,6 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 720;
+export const BORDER_WIDTH = 1;
+export const TOUCH_TARGET_SIZE = 48;
+export const PILL_RADIUS = 24;

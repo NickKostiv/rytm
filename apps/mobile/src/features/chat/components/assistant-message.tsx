@@ -1,17 +1,11 @@
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { MarkdownView } from '@/features/chat/components/markdown-view';
+import { RetryButton } from '@/features/chat/components/retry-button';
 import { SourcesSection } from '@/features/chat/components/sources-section';
-import {
-  ASSISTANT_SECTION_GAP,
-  BORDER_WIDTH,
-  PILL_RADIUS,
-  COPY,
-  RETRY_MIN_WIDTH,
-  TOUCH_TARGET_SIZE,
-} from '@/features/chat/constants';
+import { ASSISTANT_SECTION_GAP, COPY } from '@/features/chat/constants';
 import type { AssistantMessage as AssistantMessageData } from '@/features/chat/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -51,12 +45,18 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
   }
 
   const body = toDisplayedBody(message.content, message.status);
-  const retryButton = canRetry ? <RetryButton onPress={() => onRetry(message.id)} /> : null;
+  const retryButton = canRetry ? (
+    <RetryButton
+      label={COPY.retry}
+      accessibilityLabel={COPY.retryA11y}
+      onPress={() => onRetry(message.id)}
+    />
+  ) : null;
 
   return (
     <View style={styles.container}>
       {body !== '' && <MarkdownView markdown={body} />}
-      {message.status === 'stopped' && (
+      {message.status === 'stopped' && body !== '' && (
         <View>
           <ThemedText type="caption" themeColor="textSecondary">
             {COPY.stopped}
@@ -64,13 +64,33 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
           {retryButton}
         </View>
       )}
-      {message.status === 'error' && (
+      {message.status === 'stopped' && body === '' && (
         <View>
           <View accessibilityLiveRegion="polite" style={styles.errorRow}>
             <ThemedText themeColor="danger" style={styles.statusText}>
               !
             </ThemedText>
             <ThemedText themeColor="danger" style={[styles.statusText, styles.errorText]}>
+              {COPY.stoppedEmpty}
+            </ThemedText>
+          </View>
+          {retryButton}
+        </View>
+      )}
+      {message.status === 'error' && (
+        <View>
+          <View accessibilityLiveRegion="polite">
+            <View style={styles.errorRow}>
+              <ThemedText themeColor="danger" style={[styles.statusText, styles.noAnswerText]}>
+                !
+              </ThemedText>
+              <ThemedText
+                themeColor="danger"
+                style={[styles.statusText, styles.noAnswerText, styles.errorText]}>
+                {COPY.noAnswer}
+              </ThemedText>
+            </View>
+            <ThemedText type="caption" themeColor="textSecondary">
               {message.error}
             </ThemedText>
           </View>
@@ -79,19 +99,6 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
       )}
       {message.status === 'done' && <SourcesSection sources={message.sources} />}
     </View>
-  );
-}
-
-function RetryButton({ onPress }: { onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={COPY.retryA11y}
-      onPress={onPress}
-      style={[styles.retryButton, { borderColor: theme.borderStrong }]}>
-      <ThemedText style={styles.retryLabel}>{COPY.retry}</ThemedText>
-    </Pressable>
   );
 }
 
@@ -117,20 +124,7 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
   },
-  retryButton: {
-    alignSelf: 'flex-start',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: TOUCH_TARGET_SIZE,
-    minWidth: RETRY_MIN_WIDTH,
-    marginTop: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    borderRadius: PILL_RADIUS,
-    borderWidth: BORDER_WIDTH,
-  },
-  retryLabel: {
-    fontSize: 15,
-    lineHeight: 20,
+  noAnswerText: {
     fontWeight: 600,
   },
 });

@@ -34,11 +34,12 @@ const INPUT_MIN_HEIGHT = COMPOSER_FIELD_MIN_HEIGHT - BORDER_WIDTH * 2;
 
 type ChatComposerProps = {
   isStreaming: boolean;
+  isSendBlocked: boolean;
   onSend: (text: string) => void;
   onStop: () => void;
 };
 
-export function ChatComposer({ isStreaming, onSend, onStop }: ChatComposerProps) {
+export function ChatComposer({ isStreaming, isSendBlocked, onSend, onStop }: ChatComposerProps) {
   const theme = useTheme();
   const gutter = useChatGutter();
   const { fontScale } = useWindowDimensions();
@@ -46,7 +47,7 @@ export function ChatComposer({ isStreaming, onSend, onStop }: ChatComposerProps)
   const [isFocused, setIsFocused] = useState(false);
   const [measuredHeight, setMeasuredHeight] = useState(0);
   const trimmedText = text.trim();
-  const canSend = trimmedText !== '' && !isStreaming;
+  const canSend = trimmedText !== '' && !isStreaming && !isSendBlocked;
   const isButtonActive = isStreaming || canSend;
   const maxInputHeight = COMPOSER_MAX_LINES * COMPOSER_LINE_HEIGHT * fontScale + INPUT_PADDING_TOTAL;
   const inputHeightStyle = IS_WEB

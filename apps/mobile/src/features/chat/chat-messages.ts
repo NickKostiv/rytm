@@ -10,16 +10,23 @@ import type {
 const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const VERIFIED_VALIDITY = 'in_force';
 
-export function toApiMessages(messages: ChatMessage[]): ApiMessage[] {
-  return messages.map(({ role, content }) => ({ role, content }));
+function isFailedAnswer(message: ChatMessage | undefined): boolean {
+  if (message?.role !== 'assistant') return false;
+  return message.status === 'error' || (message.status === 'stopped' && message.content === '');
 }
 
-export function dropFailedTrailingTurn(messages: ChatMessage[]): ChatMessage[] {
-  const lastMessage = messages.at(-1);
-  if (lastMessage?.role === 'assistant' && lastMessage.status === 'error') {
-    return messages.slice(0, -2);
-  }
-  return messages;
+export function toContextMessages(messages: ChatMessage[]): ApiMessage[] {
+  return messages
+    .filter(
+      (message, index) =>
+        !isFailedAnswer(message) &&
+        !(message.role === 'user' && isFailedAnswer(messages[index + 1])),
+    )
+    .map(({ role, content }) => ({ role, content }));
+}
+
+export function toStoppedAnswer(message: AssistantMessage): AssistantMessage {
+  return message.status === 'streaming' ? { ...message, status: 'stopped' } : message;
 }
 
 function formatOrderDate(isoDate: string): string {
