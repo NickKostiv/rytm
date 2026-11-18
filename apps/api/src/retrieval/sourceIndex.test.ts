@@ -62,6 +62,30 @@ test('patient age and weight in the query do not filter out the matching section
   assert.deepEqual(index.search('70 кг 20 років'), []);
 });
 
+test('field-style spelling and forms of «доза» still match; unknown drugs do not', () => {
+  const index = buildSourceIndex(
+    [chunk('a', 1, 'Синтетичний текст: анафілаксія у дорослих, доза епінефрину в/м.'), ...fillerChunks('b')],
+    [row('a'), row('b')],
+  );
+  assert.deepEqual(documentIds(index.search('скока адреналіна при анафілаксиі взрослому')), ['a']);
+  assert.deepEqual(documentIds(index.search('дозу адреналіну')), ['a']);
+  assert.deepEqual(index.search('доза ремдесивіру при ковіді'), []);
+  assert.deepEqual(index.search('привіт'), []);
+});
+
+test('short words are not cut to three letters: кому is not кома, рана is not рано', () => {
+  const index = buildSourceIndex(
+    [
+      chunk('coma', 1, 'Синтетичний текст: кома, введення епінефрину.'),
+      chunk('morning', 2, 'Синтетичний текст: виїзд рано вранці, біль у нозі.'),
+      ...fillerChunks('b'),
+    ],
+    [row('coma'), row('morning'), row('b')],
+  );
+  assert.deepEqual(index.search('кому протипоказаний адреналін'), []);
+  assert.deepEqual(index.search('рана на нозі'), []);
+});
+
 test('caps fragments per document', () => {
   const chunks = Array.from({ length: 6 }, (_, page) =>
     chunk('a', page + 1, 'Синтетичний текст: тахікардія.', { id: `a:p${page + 1}:0` }),

@@ -14,20 +14,34 @@ const LATIN_TO_CYRILLIC: Readonly<Record<string, string>> = {
   y: 'у',
 };
 
-const UKRAINIAN_ENDINGS = [
+const VOWEL_VARIANTS = /[иїы]/g;
+const E_VARIANTS = /[эё]/g;
+
+const foldVowels = (word: string): string => word.replace(VOWEL_VARIANTS, 'і').replace(E_VARIANTS, 'е');
+
+const UKRAINIAN_ENDINGS = [...new Set([
   'ями', 'ами', 'ові', 'еві', 'ого', 'ому', 'ими', 'іми', 'ією', 'ої', 'ою', 'ею', 'ії', 'ія', 'ію',
   'их', 'іх', 'ий', 'ій', 'ів', 'ам', 'ям', 'ах', 'ях', 'ом', 'ем', 'а', 'я', 'у', 'ю', 'і', 'и', 'о', 'е', 'ь', 'ї', 'й',
-].sort((a, b) => b.length - a.length);
+].map(foldVowels))].sort((a, b) => b.length - a.length);
 
 const STOP_WORDS: ReadonlySet<string> = new Set([
   'і', 'й', 'та', 'в', 'у', 'з', 'із', 'зі', 'на', 'до', 'для', 'при', 'що', 'як', 'або', 'не', 'це', 'чи', 'по', 'від',
   'який', 'яка', 'яке', 'які', 'якій', 'якого', 'скільки', 'коли', 'де', 'чому', 'можна', 'треба', 'потрібно', 'мені',
-]);
+  'скока', 'сколько',
+].map(foldVowels));
 
-const STEM_SYNONYMS: Readonly<Record<string, string>> = {
-  адреналін: 'епінефрин',
-  норадреналін: 'норепінефрин',
-};
+const STEM_SYNONYMS: ReadonlyMap<string, string> = new Map(
+  Object.entries({
+    адреналін: 'епінефрин',
+    норадреналін: 'норепінефрин',
+    взросл: 'доросл',
+  }).map(([from, to]) => [foldVowels(from), foldVowels(to)]),
+);
+
+const DOSE_FORMS: ReadonlySet<string> = new Set(
+  ['доза', 'дози', 'дозі', 'дозу', 'дозою', 'доз', 'дозам', 'дозами', 'дозах'].map(foldVowels),
+);
+const DOSE_STEM = 'доз';
 
 const PATIENT_PARAMETER =
   /^\d*(?:кг|г|kg|g|кілограм|кілограми|кілограмів|грам|грами|грамів|р|рік|року|роки|років|міс|місяць|місяця|місяці|місяців|тиж|тиждень|тижня|тижні|тижнів|дн|день|дня|дні|днів)?$/u;
@@ -40,6 +54,7 @@ const foldHomoglyphs = (token: string): string =>
   CYRILLIC.test(token) ? [...token].map((character) => LATIN_TO_CYRILLIC[character] ?? character).join('') : token;
 
 const stem = (token: string): string => {
+  if (DOSE_FORMS.has(token)) return DOSE_STEM;
   const ending = UKRAINIAN_ENDINGS.find((suffix) => token.endsWith(suffix) && token.length - suffix.length >= MIN_STEM_LENGTH);
   return ending ? token.slice(0, -ending.length) : token;
 };
@@ -49,9 +64,10 @@ const toTokens = (text: string): string[] =>
 
 const toTerms = (tokens: string[]): string[] =>
   tokens
+    .map(foldVowels)
     .filter((token) => !STOP_WORDS.has(token))
     .map(stem)
-    .map((term) => STEM_SYNONYMS[term] ?? term);
+    .map((term) => STEM_SYNONYMS.get(term) ?? term);
 
 export const toSearchTerms = (text: string): string[] => toTerms(toTokens(text));
 

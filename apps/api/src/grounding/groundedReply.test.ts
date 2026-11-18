@@ -132,13 +132,21 @@ test('an answer with an unverified number is never visible on the event stream',
   assert.deepEqual(events.at(-1)?.data, { stopReason: 'withheld' });
 });
 
-test('a withheld answer that cited a table shows that table verbatim', async () => {
-  const fragmentIndex = fixtureIndex().search(QUESTION).findIndex(({ chunk: { type } }) => type === 'table');
-  assert.ok(fragmentIndex >= 0);
-  const reply = message([citedText('Ввести 0,2 мг/кг.', fragmentIndex)]);
+test('a withheld answer shows cited tables verbatim and lists every cited fragment as a source', async () => {
+  const fragments = fixtureIndex().search(QUESTION);
+  const tableIndex = fragments.findIndex(({ chunk: { type } }) => type === 'table');
+  const textIndex = fragments.findIndex(({ chunk: { type } }) => type === 'text');
+  assert.ok(tableIndex >= 0 && textIndex >= 0);
+  const reply = message([citedText('Ввести 0,2 мг/кг.', tableIndex), citedText(' Зігрівання.', textIndex)]);
   const { raw, events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
   assert.ok(!raw.includes('0,2'));
   assert.equal(events[0]?.data.text, `${WITHHELD_MESSAGE}\n\n${TABLE_FRAGMENT}`);
+  const items = events[1]?.data.items;
+  assert.ok(Array.isArray(items));
+  assert.deepEqual(
+    items.map((item: unknown) => (typeof item === 'object' && item !== null && 'id' in item ? item.id : null)).sort(),
+    ['table:p4:0', 'text:p3:0'],
+  );
 });
 
 test('an uncited answer to a medical message is replaced by the no-source answer', async () => {

@@ -79,7 +79,7 @@ const writeWithheldAnswer = (sse: SSEStreamingApi, cited: RetrievedFragment[]): 
   const tables = cited.filter(({ chunk }) => chunk.type === 'table');
   return writeGroundedAnswer(sse, {
     text: [WITHHELD_MESSAGE, ...tables.map(({ chunk }) => chunk.content)].join('\n\n'),
-    cited: tables,
+    cited,
     stopReason: 'withheld',
   });
 };
@@ -118,6 +118,13 @@ const describeMedicalContent = (text: string, index: SourceIndex): string | null
   if (numbers > 0) return `numbers=${numbers}`;
   const fragments = index.search(text).length;
   return fragments > 0 ? `fragments=${fragments}` : null;
+};
+
+const describeUnverifiedNumbers = (segments: AnswerSegment[], fragments: RetrievedFragment[]): string => {
+  const inUncitedBlocks = segments.filter(({ sourceTexts }) => sourceTexts.length === 0).flatMap((segment) => findUnverifiedNumbers([segment])).length;
+  const retrievedTexts = fragments.map(({ chunk }) => chunk.content);
+  const absentFromRetrieved = findUnverifiedNumbers(segments.map(({ text }) => ({ text, sourceTexts: retrievedTexts }))).length;
+  return `in_uncited_blocks=${inUncitedBlocks} absent_from_retrieved=${absentFromRetrieved}`;
 };
 
 const writeAnswerWithoutSources = async (
@@ -191,7 +198,9 @@ export const pipeGroundedReply = async (
   }
   const unverified = findUnverifiedNumbers(segments);
   if (unverified.length > 0) {
-    console.warn(`Grounded request ${requestId}: answer withheld, unverified numbers=${unverified.length}, citations=${cited.length}`);
+    console.warn(
+      `Grounded request ${requestId}: answer withheld, unverified numbers=${unverified.length} ${describeUnverifiedNumbers(segments, fragments)}, citations=${cited.length}`,
+    );
     await writeWithheldAnswer(sse, cited);
     return;
   }
