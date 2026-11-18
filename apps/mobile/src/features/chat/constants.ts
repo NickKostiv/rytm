@@ -34,6 +34,7 @@ export const COMPOSER_ACTION_SIZE = 40;
 export const EXAMPLE_ROW_RADIUS = 12;
 export const EXAMPLE_ROW_PADDING_VERTICAL = 12;
 export const RETRY_MIN_WIDTH = 120;
+export const FOOTNOTE_MAX_FONT_SCALE = 1.5;
 export const HEADER_ICON_SIZE = 24;
 export const HEADER_TITLE_RESERVED_WIDTH = 216;
 export const HEADER_TITLE_MIN_WIDTH = 140;
@@ -74,6 +75,8 @@ export const COPY = {
   emptyTitle: 'Довідник протоколів МОЗ для бригад ЕМД',
   emptyDescription:
     'Відповідає лише за протоколами МОЗ і показує джерело. Якщо відповіді в базі немає — так і скаже.',
+  aiDisclosure: 'Відповіді генерує ШІ (Claude, Anthropic) на основі протоколів МОЗ.',
+  piiHint: 'Не вводьте ПІБ, адресу чи інші дані пацієнта.',
   examplesLabel: 'Приклади запитань',
   exampleHint: 'Надсилає це запитання',
   inputA11yLabel: 'Запитання до довідника',

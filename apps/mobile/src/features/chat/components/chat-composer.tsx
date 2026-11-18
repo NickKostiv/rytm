@@ -21,11 +21,13 @@ import {
   COMPOSER_LINE_HEIGHT,
   COMPOSER_MAX_LINES,
   COPY,
+  FOOTNOTE_MAX_FONT_SCALE,
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
 import { useChatGutter } from '@/features/chat/use-chat-gutter';
 import { useTheme } from '@/hooks/use-theme';
 
+const PII_HINT_ID = 'composer-pii-hint';
 const ZERO_WIDTH_SPACE = '\u200B';
 const INPUT_PADDING_TOTAL = COMPOSER_INPUT_PADDING_VERTICAL * 2;
 const IS_WEB = Platform.OS === 'web';
@@ -82,6 +84,8 @@ export function ChatComposer({ isStreaming, isSendBlocked, onSend, onStop }: Cha
           )}
           <TextInput
             accessibilityLabel={COPY.inputA11yLabel}
+            accessibilityHint={COPY.piiHint}
+            aria-describedby={PII_HINT_ID}
             style={[styles.input, inputHeightStyle, { color: theme.text }]}
             placeholder={COPY.inputPlaceholder}
             placeholderTextColor={theme.textSecondary}
@@ -122,6 +126,23 @@ export function ChatComposer({ isStreaming, isSendBlocked, onSend, onStop }: Cha
           </View>
         </Pressable>
       </View>
+      <View style={styles.footnote}>
+        <ThemedText
+          type="footnote"
+          themeColor="textSecondary"
+          maxFontSizeMultiplier={FOOTNOTE_MAX_FONT_SCALE}
+          style={styles.footnoteText}>
+          {COPY.aiDisclosure}
+        </ThemedText>
+        <ThemedText
+          id={PII_HINT_ID}
+          type="footnote"
+          themeColor="textSecondary"
+          maxFontSizeMultiplier={FOOTNOTE_MAX_FONT_SCALE}
+          style={styles.footnoteText}>
+          {COPY.piiHint}
+        </ThemedText>
+      </View>
     </View>
   );
 }
@@ -143,6 +164,12 @@ const styles = StyleSheet.create({
     minHeight: COMPOSER_FIELD_MIN_HEIGHT,
     borderRadius: COMPOSER_FIELD_RADIUS,
     borderWidth: BORDER_WIDTH,
+  },
+  footnote: {
+    marginTop: Spacing.one,
+  },
+  footnoteText: {
+    textAlign: 'center',
   },
   inputWrapper: {
     flex: 1,
