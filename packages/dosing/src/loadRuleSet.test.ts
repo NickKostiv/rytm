@@ -104,7 +104,7 @@ test('unknown fields are rejected at every level', () => {
     { ...SYNTHETIC_PER_KG_RULE, concentration: { amountMg: 5, volumeMl: 2, percent: 0.25 } },
     { ...SYNTHETIC_PER_KG_RULE, rounding: { stepMg: 0.25, direction: 'down', minimumMg: 1 } },
     { ...SYNTHETIC_PER_KG_RULE, repeat: { minMinutes: 7, maxMinutes: 11, maxRepeats: 2 } },
-    { ...SYNTHETIC_PER_KG_RULE, source: { ...SYNTHETIC_PER_KG_RULE.source, section: '0.0' } },
+    { ...SYNTHETIC_PER_KG_RULE, source: { ...SYNTHETIC_PER_KG_RULE.source, chapter: '0.0' } },
     withBands([
       { minKg: null, maxKgExclusive: 17, doseMg: 2.5, label: 'low' },
       bandWithAge,
@@ -118,6 +118,12 @@ test('unknown fields are rejected at every level', () => {
 test('a rule whose source is not in the registry is rejected', () => {
   const unregistered = syntheticRuleWithSource(SYNTHETIC_PER_KG_RULE, 'synthetic-source-missing');
   assert.throws(() => loadRuleSet([unregistered], SYNTHETIC_SOURCE_VALIDITIES), /not in the source registry/);
+});
+
+test('an empty population or section is rejected', () => {
+  assert.throws(() => loadRuleSet([{ ...SYNTHETIC_PER_KG_RULE, population: ' ' }], SYNTHETIC_SOURCE_VALIDITIES), /missing or invalid population/);
+  const withoutSection = { ...SYNTHETIC_PER_KG_RULE, source: { ...SYNTHETIC_PER_KG_RULE.source, section: '' } };
+  assert.throws(() => loadRuleSet([withoutSection], SYNTHETIC_SOURCE_VALIDITIES), /missing or invalid source/);
 });
 
 test('a concentration without its verbatim text is rejected', () => {

@@ -45,12 +45,12 @@ const withConcentration = (concentration: Concentration): DosingRule => ({
   concentrationText: 'синтетична концентрація',
 });
 
-test('per-kg rule: dose, volume and formula are exact decimals with the rule numbers and the weight', () => {
+test('per-kg rule: dose, volume and formula steps are exact decimals with the rule numbers and the weight', () => {
   const result = expectDose(calculateDose(SYNTHETIC_RULE_SET, inputFor(SYNTHETIC_PER_KG_RULE, 12)));
   assert.equal(result.doseMg, '8.4');
   assert.deepEqual(result.volume, { kind: 'calculated', volumeMl: '3.36' });
   assert.equal(result.isCappedAtMaximum, false);
-  assert.equal(result.formula, '0,7 мг/кг × 12 кг = 8,4 мг; 8,4 мг × 2 мл / 5 мг = 3,36 мл');
+  assert.deepEqual(result.formulaSteps, ['0,7\u00A0мг/кг × 12\u00A0кг = 8,4\u00A0мг', '8,4\u00A0мг × 2\u00A0мл / 5\u00A0мг = 3,36\u00A0мл']);
   assert.equal(result.rule.id, SYNTHETIC_PER_KG_RULE.id);
   assert.equal(result.rule.maxSingleDoseMg, 13);
   assert.equal(result.rule.source.orderDate, '2000-01-01');
@@ -65,9 +65,9 @@ test('a dose above the maximum single dose is capped and marked', () => {
   const result = expectDose(calculateDose(SYNTHETIC_RULE_SET, inputFor(SYNTHETIC_PER_KG_RULE, 30)));
   assert.equal(result.doseMg, '13');
   assert.equal(result.isCappedAtMaximum, true);
-  assert.equal(
-    result.formula,
-    '0,7 мг/кг × 30 кг = 21 мг; більше за максимальну разову дозу 13 мг → 13 мг; 13 мг × 2 мл / 5 мг = 5,2 мл',
+  assert.deepEqual(
+    result.formulaSteps,
+    ['0,7\u00A0мг/кг × 30\u00A0кг = 21\u00A0мг', 'більше за максимальну разову дозу 13\u00A0мг → 13\u00A0мг', '13\u00A0мг × 2\u00A0мл / 5\u00A0мг = 5,2\u00A0мл'],
   );
 });
 
@@ -84,7 +84,7 @@ test('band rule: below, exactly on and above the band boundary', () => {
   assert.equal(doseAt(17), '7.5');
   assert.equal(doseAt(17.1), '7.5');
   const onBoundary = expectDose(calculateDose(SYNTHETIC_RULE_SET, inputFor(SYNTHETIC_BAND_RULE, 17)));
-  assert.equal(onBoundary.formula, '17 кг → синтетична група від 17 кг: 7,5 мг');
+  assert.deepEqual(onBoundary.formulaSteps, ['17\u00A0кг → синтетична група від 17 кг: 7,5\u00A0мг']);
   assert.deepEqual(onBoundary.volume, { kind: 'no_concentration' });
   assert.equal(onBoundary.sourceValidity, 'in_force');
 });
@@ -147,6 +147,18 @@ test('a dose that rounds to zero is rejected with no number, for both rounding d
   assert.equal(expectDose(calculateWith(nearest, 4)).doseMg, '5');
 });
 
+test('a weight above 300 kg is rejected as a typo, 300 kg itself is accepted', () => {
+  assert.equal(expectDose(calculateWith(SYNTHETIC_POINT_ONE_PER_KG, 300)).doseMg, '30');
+  for (const weightKg of [300.01, 700]) {
+    assert.deepEqual(calculateWith(SYNTHETIC_POINT_ONE_PER_KG, weightKg), { kind: 'rejected', reason: 'invalid_weight' });
+  }
+});
+
+test('the rule population reaches the result unchanged', () => {
+  const result = expectDose(calculateDose(SYNTHETIC_RULE_SET, inputFor(SYNTHETIC_BAND_RULE, 20)));
+  assert.equal(result.rule.population, SYNTHETIC_BAND_RULE.population);
+});
+
 test('a weight that is not a positive number is rejected', () => {
   for (const weightKg of [0, -4, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.deepEqual(calculateDose(SYNTHETIC_RULE_SET, inputFor(SYNTHETIC_PER_KG_RULE, weightKg)), {
@@ -168,9 +180,9 @@ test('rounding down to a step, on both sides of the step and exactly on it', () 
   assert.equal(expectDose(calculateWith(rule, 27.4)).doseMg, '2.5');
   assert.equal(expectDose(calculateWith(rule, 27.5)).doseMg, '2.75');
   assert.equal(expectDose(calculateWith(rule, 27.6)).doseMg, '2.75');
-  assert.equal(
-    expectDose(calculateWith(rule, 26)).formula,
-    '0,1 мг/кг × 26 кг = 2,6 мг; округлення вниз з кроком 0,25 мг: 2,5 мг',
+  assert.deepEqual(
+    expectDose(calculateWith(rule, 26)).formulaSteps,
+    ['0,1\u00A0мг/кг × 26\u00A0кг = 2,6\u00A0мг', 'округлення вниз з кроком 0,25\u00A0мг: 2,5\u00A0мг'],
   );
 });
 
@@ -205,5 +217,5 @@ test('a volume that is not a finite decimal is not shown rounded', () => {
   const result = expectDose(calculateWith(withConcentration({ amountMg: 3, volumeMl: 1 }), 10));
   assert.equal(result.doseMg, '1');
   assert.deepEqual(result.volume, { kind: 'not_exact_decimal' });
-  assert.equal(result.formula, '0,1 мг/кг × 10 кг = 1 мг');
+  assert.deepEqual(result.formulaSteps, ['0,1\u00A0мг/кг × 10\u00A0кг = 1\u00A0мг']);
 });

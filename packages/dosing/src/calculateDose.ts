@@ -5,6 +5,7 @@ import {
   isGreaterThan,
   multiplyDecimals,
   roundToStep,
+  toDisplayDecimal,
   type Decimal,
 } from '#decimal';
 import type { Concentration, DosingRule, Route, UsableSourceValidity } from '#dosingRule';
@@ -32,23 +33,30 @@ export type DoseOutcome =
       doseMg: string;
       volume: DoseVolume;
       isCappedAtMaximum: boolean;
-      formula: string;
+      formulaSteps: string[];
     }
   | { kind: 'missing_parameter'; parameter: DoseParameter }
   | { kind: 'rejected'; reason: 'invalid_weight' | 'no_rule' | 'source_not_in_force' | 'below_rounding_step' };
 
 type DoseStep = { doseMg: Decimal; formulaSteps: string[] };
 
-const FORMULA_STEP_SEPARATOR = '; ';
-
 const MAX_WEIGHT_DECIMAL_PLACES = 2;
 
-const formatForFormula = (value: Decimal): string => decimalToText(value).replace('.', ',');
+const MAX_WEIGHT_KG = 300;
+
+const NO_BREAK_SPACE = '\u00A0';
+
+const formatForFormula = (value: Decimal): string => toDisplayDecimal(decimalToText(value));
+
+const withUnit = (value: Decimal, unit: string): string => `${formatForFormula(value)}${NO_BREAK_SPACE}${unit}`;
 
 const presentText = (value: string | null): string | null => (value === null || value.trim() === '' ? null : value);
 
 const isAcceptedWeight = (weightKg: number): boolean =>
-  Number.isFinite(weightKg) && weightKg > 0 && decimalFromNumber(weightKg).scale <= MAX_WEIGHT_DECIMAL_PLACES;
+  Number.isFinite(weightKg) &&
+  weightKg > 0 &&
+  weightKg <= MAX_WEIGHT_KG &&
+  decimalFromNumber(weightKg).scale <= MAX_WEIGHT_DECIMAL_PLACES;
 
 type RuleKey = { drug: string; indication: string; route: Route };
 
@@ -66,7 +74,7 @@ const baseDose = (rule: DosingRule, weightKg: number): DoseStep => {
   if (rule.dose.kind === 'per_kg') {
     const perKg = decimalFromNumber(rule.dose.mgPerKg);
     const doseMg = multiplyDecimals(perKg, weight);
-    const step = `${formatForFormula(perKg)} мг/кг × ${formatForFormula(weight)} кг = ${formatForFormula(doseMg)} мг`;
+    const step = `${withUnit(perKg, 'мг/кг')} × ${withUnit(weight, 'кг')} = ${withUnit(doseMg, 'мг')}`;
     return { doseMg, formulaSteps: [step] };
   }
   const band = rule.dose.bands.find(
@@ -77,7 +85,7 @@ const baseDose = (rule: DosingRule, weightKg: number): DoseStep => {
     throw new Error(`Rule ${rule.id} has no weight band for the given weight`);
   }
   const doseMg = decimalFromNumber(band.doseMg);
-  return { doseMg, formulaSteps: [`${formatForFormula(weight)} кг → ${band.label}: ${formatForFormula(doseMg)} мг`] };
+  return { doseMg, formulaSteps: [`${withUnit(weight, 'кг')} → ${band.label}: ${withUnit(doseMg, 'мг')}`] };
 };
 
 const applyRounding = (rule: DosingRule, current: DoseStep): DoseStep => {
@@ -87,7 +95,7 @@ const applyRounding = (rule: DosingRule, current: DoseStep): DoseStep => {
   const step = decimalFromNumber(rule.rounding.stepMg);
   const doseMg = roundToStep(current.doseMg, step, rule.rounding.direction);
   const label = rule.rounding.direction === 'down' ? 'округлення вниз' : 'округлення до найближчого';
-  const text = `${label} з кроком ${formatForFormula(step)} мг: ${formatForFormula(doseMg)} мг`;
+  const text = `${label} з кроком ${withUnit(step, 'мг')}: ${withUnit(doseMg, 'мг')}`;
   return { doseMg, formulaSteps: [...current.formulaSteps, text] };
 };
 
@@ -99,7 +107,7 @@ const applyMaximum = (rule: DosingRule, current: DoseStep): DoseStep & { isCappe
   if (!isGreaterThan(current.doseMg, maximum)) {
     return { ...current, isCappedAtMaximum: false };
   }
-  const text = `більше за максимальну разову дозу ${formatForFormula(maximum)} мг → ${formatForFormula(maximum)} мг`;
+  const text = `більше за максимальну разову дозу ${withUnit(maximum, 'мг')} → ${withUnit(maximum, 'мг')}`;
   return { doseMg: maximum, formulaSteps: [...current.formulaSteps, text], isCappedAtMaximum: true };
 };
 
@@ -116,7 +124,7 @@ const calculateVolume = (
   if (result === null) {
     return { volume: { kind: 'not_exact_decimal' }, formulaSteps: [] };
   }
-  const text = `${formatForFormula(doseMg)} мг × ${formatForFormula(volumeMl)} мл / ${formatForFormula(amountMg)} мг = ${formatForFormula(result)} мл`;
+  const text = `${withUnit(doseMg, 'мг')} × ${withUnit(volumeMl, 'мл')} / ${withUnit(amountMg, 'мг')} = ${withUnit(result, 'мл')}`;
   return { volume: { kind: 'calculated', volumeMl: decimalToText(result) }, formulaSteps: [text] };
 };
 
@@ -135,7 +143,8 @@ export const calculateDose = (ruleSet: RuleSet, input: DoseInput): DoseOutcome =
   const rounded = applyRounding(rule, baseDose(rule, input.weightKg));
   if (rounded.doseMg.units === 0n) return { kind: 'rejected', reason: 'below_rounding_step' };
   const capped = applyMaximum(rule, rounded);
-  const { volume, formulaSteps } = calculateVolume(rule.concentration, capped.doseMg);
+  const { volume, formulaSteps: volumeSteps } = calculateVolume(rule.concentration, capped.doseMg);
+  const formulaSteps = [...capped.formulaSteps, ...volumeSteps];
   return {
     kind: 'dose',
     rule,
@@ -143,6 +152,6 @@ export const calculateDose = (ruleSet: RuleSet, input: DoseInput): DoseOutcome =
     doseMg: decimalToText(capped.doseMg),
     volume,
     isCappedAtMaximum: capped.isCappedAtMaximum,
-    formula: [...capped.formulaSteps, ...formulaSteps].join(FORMULA_STEP_SEPARATOR),
+    formulaSteps,
   };
 };

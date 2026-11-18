@@ -37,6 +37,8 @@ const isNonEmptyString = (value: unknown): value is string => typeof value === '
 
 const isNullableString = (value: unknown): value is string | null => value === null || typeof value === 'string';
 
+const isNullableNonEmptyString = (value: unknown): value is string | null => value === null || isNonEmptyString(value);
+
 const hasOnlyKeys = (value: Record<string, unknown>, keys: readonly string[]): boolean =>
   Object.keys(value).every((key) => keys.includes(key));
 
@@ -83,12 +85,13 @@ const isRounding = (value: unknown): value is Rounding =>
 
 const isRuleSource = (value: unknown): value is RuleSource =>
   isRecord(value) &&
-  hasOnlyKeys(value, ['registryId', 'orderNumber', 'orderDate', 'annex', 'page', 'quote']) &&
+  hasOnlyKeys(value, ['registryId', 'orderNumber', 'orderDate', 'annex', 'section', 'page', 'quote']) &&
   isNonEmptyString(value.registryId) &&
   isNonEmptyString(value.orderNumber) &&
   typeof value.orderDate === 'string' &&
   ORDER_DATE_PATTERN.test(value.orderDate) &&
   isNullableString(value.annex) &&
+  isNonEmptyString(value.section) &&
   isPositiveNumber(value.page) &&
   Number.isInteger(value.page) &&
   isNonEmptyString(value.quote);
@@ -97,6 +100,7 @@ const RULE_FIELD_CHECKS: { [Field in keyof DosingRule]: (value: unknown) => valu
   id: isNonEmptyString,
   drug: isNonEmptyString,
   indication: isNonEmptyString,
+  population: isNullableNonEmptyString,
   route: isRoute,
   concentration: isConcentration,
   concentrationText: isNullableString,

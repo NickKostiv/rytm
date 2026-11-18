@@ -72,3 +72,5 @@ export const decimalToText = (value: Decimal): string => {
   const fractionPart = digits.slice(digits.length - value.scale).replace(/0+$/, '');
   return fractionPart ? `${integerPart}.${fractionPart}` : integerPart;
 };
+
+export const toDisplayDecimal = (decimalText: string): string => decimalText.replace('.', ',');

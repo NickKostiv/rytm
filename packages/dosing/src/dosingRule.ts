@@ -20,6 +20,7 @@ export type RuleSource = {
   orderNumber: string;
   orderDate: string;
   annex: string | null;
+  section: string;
   page: number;
   quote: string;
 };
@@ -28,6 +29,7 @@ export type DosingRule = {
   id: string;
   drug: string;
   indication: string;
+  population: string | null;
   route: Route;
   concentration: Concentration | null;
   concentrationText: string | null;

@@ -17,6 +17,7 @@ const syntheticSource = (registryId: string): DosingRule['source'] => ({
   orderNumber: 'SYNTHETIC-0',
   orderDate: '2000-01-01',
   annex: null,
+  section: 'SYNTHETIC SECTION',
   page: 1,
   quote: 'SYNTHETIC TEST DATA, NOT A REAL DOSE',
 });
@@ -25,6 +26,7 @@ export const SYNTHETIC_PER_KG_RULE: DosingRule = {
   id: 'synthetic-a-condition-iv',
   drug: 'синтетичний препарат A',
   indication: 'синтетичний стан',
+  population: null,
   route: 'iv',
   concentration: { amountMg: 5, volumeMl: 2 },
   concentrationText: '5 мг/2 мл (синтетично)',
@@ -39,6 +41,7 @@ export const SYNTHETIC_BAND_RULE: DosingRule = {
   id: 'synthetic-b-condition-im',
   drug: 'синтетичний препарат B',
   indication: 'синтетичний стан',
+  population: 'синтетична група пацієнтів',
   route: 'im',
   concentration: null,
   concentrationText: null,

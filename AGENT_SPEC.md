@@ -24,7 +24,7 @@ Decided 2026-11-17. The LLM does **no** dose math: it never calculates, converts
 
 - One implementation, shared by the backend and the app, so online and offline give the same result for the same input.
 - Input: drug, indication, route, weight, age. Output: dose, volume for the rule's concentration, the formula as applied, the maximum dose, the rule's source and version date.
-- It caps the result at the maximum single dose and says so. It rejects a weight that is implausible for the age once a weight-for-age reference with a source exists; until then it rejects only a weight that is not a positive number. It applies no rounding that the rule does not define.
+- It caps the result at the maximum single dose and says so. It rejects a weight that is implausible for the age once a weight-for-age reference with a source exists; until then it rejects a weight that is not a positive number or is above 300 kg (a typo guard, not a clinical limit, decided 2026-11-18). It applies no rounding that the rule does not define.
 - A missing parameter is asked for, never assumed.
 
 ### Online mode (chat)

@@ -16,3 +16,11 @@ export type {
 } from '#dosingRule';
 export { loadRuleSet } from '#loadRuleSet';
 export type { LoadedRule, RuleSet } from '#loadRuleSet';
+export { toDisplayDecimal } from '#decimal';
+export {
+  MOH_DOSING_RULES,
+  MOH_OFFLINE_SOURCE_VALIDITIES,
+  MOH_RULE_SET_DATE,
+  MOH_RULE_SOURCE_DOCUMENTS,
+} from '#mohRuleSet';
+export type { RuleSourceDocument } from '#mohRuleSet';
