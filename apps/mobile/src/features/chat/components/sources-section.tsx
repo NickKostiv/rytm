@@ -12,16 +12,17 @@ import {
   SOURCE_ITEM_PADDING_VERTICAL,
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
-import { isAllowedSourceUrl } from '@/features/chat/source-url';
-import type { AnswerSource } from '@/features/chat/types';
+import { isAllowedSourceUrl, isAllowedWebSourceUrl } from '@/features/chat/source-url';
+import type { AnswerSource, WebSource } from '@/features/chat/types';
 import { useTheme } from '@/hooks/use-theme';
 
 type SourcesSectionProps = {
   sources: AnswerSource[];
+  webSources: WebSource[];
 };
 
-export function SourcesSection({ sources }: SourcesSectionProps) {
-  if (sources.length === 0) {
+export function SourcesSection({ sources, webSources }: SourcesSectionProps) {
+  if (sources.length === 0 && webSources.length === 0) {
     return null;
   }
 
@@ -37,20 +38,27 @@ export function SourcesSection({ sources }: SourcesSectionProps) {
       {sources.map((source, index) => (
         <SourceItem key={source.id} source={source} position={index + 1} isFirst={index === 0} />
       ))}
+      {webSources.map((source, index) => (
+        <WebSourceItem
+          key={source.id}
+          source={source}
+          position={sources.length + index + 1}
+          isFirst={sources.length + index === 0}
+        />
+      ))}
     </View>
   );
 }
 
 type OpenState = { status: 'idle' } | { status: 'opening' } | { status: 'failed'; message: string };
 
-type SourceItemProps = {
-  source: AnswerSource;
-  position: number;
-  isFirst: boolean;
+type SourceLink = {
+  url: string;
+  isAllowed: (url: string) => boolean;
+  blockedMessage: string;
 };
 
-function SourceItem({ source, position, isFirst }: SourceItemProps) {
-  const theme = useTheme();
+function useSourceLink({ url, isAllowed, blockedMessage }: SourceLink) {
   const [openState, setOpenState] = useState<OpenState>({ status: 'idle' });
   const isMountedRef = useRef(false);
 
@@ -61,20 +69,37 @@ function SourceItem({ source, position, isFirst }: SourceItemProps) {
     };
   }, []);
 
-  const handlePress = async () => {
+  const openLink = async () => {
     if (openState.status === 'opening') return;
-    if (!isAllowedSourceUrl(source.url)) {
-      setOpenState({ status: 'failed', message: COPY.sourceBlocked });
+    if (!isAllowed(url)) {
+      setOpenState({ status: 'failed', message: blockedMessage });
       return;
     }
     setOpenState({ status: 'opening' });
     try {
-      await openBrowserAsync(source.url);
+      await openBrowserAsync(url);
       if (isMountedRef.current) setOpenState({ status: 'idle' });
     } catch {
       if (isMountedRef.current) setOpenState({ status: 'failed', message: COPY.sourceOpenFailed });
     }
   };
+
+  return { openState, openLink };
+}
+
+type SourceItemProps = {
+  source: AnswerSource;
+  position: number;
+  isFirst: boolean;
+};
+
+function SourceItem({ source, position, isFirst }: SourceItemProps) {
+  const theme = useTheme();
+  const { openState, openLink } = useSourceLink({
+    url: source.url,
+    isAllowed: isAllowedSourceUrl,
+    blockedMessage: COPY.sourceBlocked,
+  });
 
   const orderLine = source.page
     ? `${COPY.sourceOrder(source.orderNumber, source.orderDate)} · ${COPY.sourcePage(source.page)}`
@@ -86,7 +111,7 @@ function SourceItem({ source, position, isFirst }: SourceItemProps) {
         accessibilityRole="link"
         accessibilityLabel={COPY.sourceA11yLabel(position, source)}
         accessibilityHint={COPY.sourceA11yHint}
-        onPress={() => void handlePress()}
+        onPress={() => void openLink()}
         style={({ pressed }) => [styles.item, pressed && { backgroundColor: theme.backgroundElement }]}>
         <ThemedText type="bodyCompact" style={styles.title}>
           <ThemedText type="bodyCompact" themeColor="textSecondary" style={styles.title}>
@@ -110,6 +135,52 @@ function SourceItem({ source, position, isFirst }: SourceItemProps) {
             </ThemedText>
           )}
         </View>
+      </Pressable>
+      {openState.status === 'failed' && (
+        <ThemedText type="caption" themeColor="danger">
+          {openState.message}
+        </ThemedText>
+      )}
+    </View>
+  );
+}
+
+type WebSourceItemProps = {
+  source: WebSource;
+  position: number;
+  isFirst: boolean;
+};
+
+function WebSourceItem({ source, position, isFirst }: WebSourceItemProps) {
+  const theme = useTheme();
+  const { openState, openLink } = useSourceLink({
+    url: source.url,
+    isAllowed: isAllowedWebSourceUrl,
+    blockedMessage: COPY.webSourceBlocked,
+  });
+
+  return (
+    <View style={!isFirst && [styles.itemDivider, { borderTopColor: theme.border }]}>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={COPY.webSourceA11yLabel(position, source)}
+        accessibilityHint={COPY.webSourceA11yHint}
+        onPress={() => void openLink()}
+        style={({ pressed }) => [styles.item, pressed && { backgroundColor: theme.backgroundElement }]}>
+        <ThemedText
+          type="footnote"
+          style={[styles.chip, styles.webChip, { borderColor: theme.borderStrong }]}>
+          {COPY.webSourceLabel}
+        </ThemedText>
+        <ThemedText type="bodyCompact" style={styles.title}>
+          <ThemedText type="bodyCompact" themeColor="textSecondary" style={styles.title}>
+            {`${position}. `}
+          </ThemedText>
+          {source.title}
+        </ThemedText>
+        <ThemedText type="caption" themeColor="accent" style={styles.host}>
+          {COPY.webSourceHost(source.domain)}
+        </ThemedText>
       </Pressable>
       {openState.status === 'failed' && (
         <ThemedText type="caption" themeColor="danger">
@@ -150,5 +221,9 @@ const styles = StyleSheet.create({
     borderWidth: BORDER_WIDTH,
     borderRadius: SOURCE_CHIP_RADIUS,
     paddingHorizontal: SOURCE_CHIP_PADDING_HORIZONTAL,
+  },
+  webChip: {
+    alignSelf: 'flex-start',
+    fontWeight: 600,
   },
 });

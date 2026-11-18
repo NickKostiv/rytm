@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { ChatMessage } from '@/features/chat/types';
 import { CONVERSATION_KEY_PREFIX, HISTORY_INDEX_KEY } from '@/features/history/constants';
 import {
   parseJson,
@@ -21,8 +22,13 @@ function toIndexEntry(conversationIds: string[]): [string, string] {
   return [HISTORY_INDEX_KEY, JSON.stringify(conversationIds)];
 }
 
+function toStoredMessage(message: ChatMessage): ChatMessage {
+  return message.role === 'assistant' ? { ...message, progressStage: undefined } : message;
+}
+
 function toConversationEntry(conversation: Conversation): [string, string] {
-  return [toConversationKey(conversation.id), JSON.stringify(conversation)];
+  const storedConversation = { ...conversation, messages: conversation.messages.map(toStoredMessage) };
+  return [toConversationKey(conversation.id), JSON.stringify(storedConversation)];
 }
 
 function parseConversationId(value: unknown): string | null {

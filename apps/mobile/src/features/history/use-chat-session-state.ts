@@ -220,6 +220,7 @@ export function useChatSessionState(): ChatSession {
       role: 'assistant',
       content: '',
       sources: [],
+      webSources: [],
       status: 'streaming',
     };
     const conversation: Conversation = existing
@@ -251,6 +252,8 @@ export function useChatSessionState(): ChatSession {
       ...message,
       content: '',
       sources: [],
+      webSources: [],
+      progressStage: undefined,
       status: 'streaming',
     }));
     persistence.saveNow(activeId);

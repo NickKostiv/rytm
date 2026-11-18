@@ -5,7 +5,7 @@ import { Spacing } from '@/constants/theme';
 import { MarkdownView } from '@/features/chat/components/markdown-view';
 import { RetryButton } from '@/features/chat/components/retry-button';
 import { SourcesSection } from '@/features/chat/components/sources-section';
-import { ASSISTANT_SECTION_GAP, COPY } from '@/features/chat/constants';
+import { ASSISTANT_SECTION_GAP, COPY, WAITING_NOTE_INDENT } from '@/features/chat/constants';
 import type { AssistantMessage as AssistantMessageData } from '@/features/chat/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -35,11 +35,18 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
 
   if (message.status === 'streaming' && message.content === '') {
     return (
-      <View accessibilityLiveRegion="polite" style={styles.waitingRow}>
-        <ActivityIndicator size="small" color={theme.textSecondary} accessibilityRole="progressbar" />
-        <ThemedText themeColor="textSecondary" style={styles.statusText}>
-          {COPY.waiting}
-        </ThemedText>
+      <View accessibilityLiveRegion="polite">
+        <View style={styles.waitingRow}>
+          <ActivityIndicator size="small" color={theme.textSecondary} accessibilityRole="progressbar" />
+          <ThemedText themeColor="textSecondary" style={styles.statusText}>
+            {message.progressStage ? COPY.progressStage[message.progressStage] : COPY.waiting}
+          </ThemedText>
+        </View>
+        {message.progressStage === 'verifying' && (
+          <ThemedText type="caption" themeColor="textSecondary" style={styles.waitingNote}>
+            {COPY.verifyingNote}
+          </ThemedText>
+        )}
       </View>
     );
   }
@@ -97,7 +104,9 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
           {retryButton}
         </View>
       )}
-      {message.status === 'done' && <SourcesSection sources={message.sources} />}
+      {message.status === 'done' && (
+        <SourcesSection sources={message.sources} webSources={message.webSources} />
+      )}
     </View>
   );
 }
@@ -111,6 +120,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+  },
+  waitingNote: {
+    marginLeft: WAITING_NOTE_INDENT,
   },
   statusText: {
     fontSize: 15,

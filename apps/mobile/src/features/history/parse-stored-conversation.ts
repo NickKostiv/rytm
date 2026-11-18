@@ -1,4 +1,5 @@
 import { COPY } from '@/features/chat/constants';
+import { parseWebSource } from '@/features/chat/parse-sse-stream';
 import type { AnswerSource, ChatMessage } from '@/features/chat/types';
 import type { Conversation } from '@/features/history/types';
 
@@ -49,15 +50,19 @@ function parseMessage(value: unknown): ChatMessage | null {
   if (role === 'user') return { id, role, content };
   if (role !== 'assistant') return null;
   const sources = parseList(value.sources, parseSource);
-  if (sources === null) return null;
+  const webSources =
+    value.webSources === undefined ? [] : parseList(value.webSources, parseWebSource);
+  if (sources === null || webSources === null) return null;
   if (status === 'error' && error === COPY.stoppedEmpty) {
-    return { id, role, content, sources, status: 'stopped' };
+    return { id, role, content, sources, webSources, status: 'stopped' };
   }
   if (status === 'error') {
-    return typeof error === 'string' ? { id, role, content, sources, status, error } : null;
+    return typeof error === 'string'
+      ? { id, role, content, sources, webSources, status, error }
+      : null;
   }
   if (status === 'streaming' || status === 'done' || status === 'stopped') {
-    return { id, role, content, sources, status };
+    return { id, role, content, sources, webSources, status };
   }
   return null;
 }

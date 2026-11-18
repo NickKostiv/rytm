@@ -10,3 +10,11 @@ export function isAllowedSourceUrl(url: string): boolean {
     return false;
   }
 }
+
+export function isAllowedWebSourceUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === ALLOWED_SOURCE_PROTOCOL;
+  } catch {
+    return false;
+  }
+}

@@ -1,4 +1,4 @@
-import type { AnswerSource } from '@/features/chat/types';
+import type { AnswerSource, ProgressStage, WebSource } from '@/features/chat/types';
 
 export { BORDER_WIDTH, PILL_RADIUS, TOUCH_TARGET_SIZE } from '@/constants/theme';
 
@@ -44,6 +44,9 @@ export const SOURCE_ITEM_PADDING_VERTICAL = 10;
 export const SOURCE_CHIP_RADIUS = 6;
 export const SOURCE_CHIP_PADDING_HORIZONTAL = 6;
 export const ALLOWED_SOURCE_HOSTS = ['moz.gov.ua', 'www.moz.gov.ua'];
+export const WAITING_NOTE_INDENT = 28;
+
+export const PROGRESS_STAGES = ['retrieving', 'answering', 'searching_web', 'verifying'] as const;
 
 export const EXAMPLE_QUESTIONS = [
   'Анафілаксія: алгоритм допомоги',
@@ -67,6 +70,13 @@ export const COPY = {
   send: 'Надіслати',
   stop: 'Зупинити відповідь',
   waiting: 'Готую відповідь…',
+  progressStage: {
+    retrieving: 'Шукаю в протоколах МОЗ…',
+    answering: 'Складаю відповідь…',
+    searching_web: 'Шукаю додаткові джерела…',
+    verifying: 'Звіряю відповідь із протоколами МОЗ…',
+  } satisfies Record<ProgressStage, string>,
+  verifyingNote: 'Перевірка може тривати кілька десятків секунд.',
   stopped: 'Відповідь зупинено — вона може бути неповною.',
   stoppedEmpty: 'Відповідь зупинено',
   noAnswer: 'Не отримано відповіді',
@@ -84,6 +94,12 @@ export const COPY = {
   sourceA11yLabel: (position: number, { title, orderNumber, orderDate, page }: AnswerSource) =>
     `Джерело ${position}: ${title}, наказ № ${orderNumber} від ${orderDate}, ${page ? `сторінка ${page}, ` : ''}moz.gov.ua, чинність не перевірено`,
   sourceA11yHint: 'Відкриває документ у браузері',
+  webSourceLabel: 'Не документ МОЗ (довідково)',
+  webSourceHost: (domain: string) => `${domain} ↗`,
+  webSourceBlocked: 'Посилання не відкрито: адреса не https',
+  webSourceA11yLabel: (position: number, { title, domain }: WebSource) =>
+    `Джерело ${position}: ${title}, ${domain}, не документ МОЗ, довідково`,
+  webSourceA11yHint: 'Відкриває сторінку в браузері',
   networkError: 'Не вдалося отримати відповідь. Перевірте зʼєднання.',
   interruptedStream: 'Відповідь обірвалася. Спробуйте ще раз.',
   serverError: (status: number) => `Помилка сервера (${status})`,

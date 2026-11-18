@@ -55,6 +55,10 @@ export function applyStreamEvent(
       return { ...message, content: message.content + event.text, status: 'streaming' };
     case 'citations':
       return { ...message, sources: event.items.map(toAnswerSource) };
+    case 'web_sources':
+      return { ...message, webSources: event.items };
+    case 'progress':
+      return { ...message, progressStage: event.stage };
     case 'done':
       return { ...message, status: 'done' };
     case 'error':
