@@ -5,6 +5,8 @@ import { REFUSAL_MESSAGE, toUserSafeChatError } from '../chatErrorMessage.js';
 import type { ChatMessage } from '../chatRequest.js';
 import { writeEvent } from '../chatSse.js';
 import type { ConversationReply } from '../claudeChatStream.js';
+import { awaitDoseParameters, describeDoseParameters, startDoseParameters } from '../dosing/recogniseDoseParameters.js';
+import type { DoseParameterDependencies, PendingDoseParameters } from '../dosing/recogniseDoseParameters.js';
 import type { RetrievedFragment, SourceIndex } from '../retrieval/sourceIndex.js';
 import { findUnverifiedNumbers } from './answerNumbers.js';
 import type { AnswerSegment } from './answerNumbers.js';
@@ -16,7 +18,7 @@ export type GroundedMessage = Pick<Anthropic.Beta.BetaMessage, 'content' | 'stop
 
 export type GroundedStream = { abort: () => void; finalMessage: () => Promise<GroundedMessage> };
 
-export type GroundedDependencies = {
+export type GroundedDependencies = DoseParameterDependencies & {
   getSourceIndex: () => Promise<SourceIndex>;
   startStream: (messages: Anthropic.Beta.BetaMessageParam[]) => GroundedStream;
   replyWithoutSources: (messages: ChatMessage[], signal: AbortSignal) => Promise<ConversationReply>;
@@ -30,6 +32,11 @@ const CONVERSATION_STOP_REASON = 'conversation';
 const SHORT_QUESTION_LENGTH = 40;
 
 type RequestWithoutSources = { requestId: string; messages: ChatMessage[]; index: SourceIndex };
+
+type RequestWithFragments = RequestWithoutSources & {
+  fragments: RetrievedFragment[];
+  doseParameters: PendingDoseParameters;
+};
 
 const buildRetrievalQuery = (messages: ChatMessage[]): string => {
   const userMessages = messages.filter(({ role }) => role === 'user').map(({ content }) => content);
@@ -154,6 +161,51 @@ const answerWithoutSources = async (
   if (reply) await writeAnswerWithoutSources(sse, reply, request);
 };
 
+const writeDoseParameters = async (sse: SSEStreamingApi, request: RequestWithFragments): Promise<void> => {
+  const event = await awaitDoseParameters(request.doseParameters);
+  if (!event || sse.aborted) return;
+  console.log(`Grounded request ${request.requestId}: dose_parameters ${describeDoseParameters(event)}`);
+  await writeEvent(sse, 'dose_parameters', event);
+};
+
+const answerFromFragments = async (
+  sse: SSEStreamingApi,
+  request: RequestWithFragments,
+  dependencies: GroundedDependencies,
+): Promise<void> => {
+  const { requestId, messages, fragments, doseParameters } = request;
+  const message = await readFinalMessage(sse, dependencies.startStream(toGroundedMessages(messages, fragments)));
+  if (!message) {
+    doseParameters.abort();
+    return;
+  }
+  const { input_tokens: input, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: cacheWrite } = message.usage;
+  console.log(`Grounded request ${requestId}: fragments=${fragments.length} input=${input} cache_read=${cacheRead ?? 0} cache_write=${cacheWrite ?? 0}`);
+  if (message.stop_reason === REFUSAL_STOP_REASON) {
+    doseParameters.abort();
+    await writeEvent(sse, 'error', { message: REFUSAL_MESSAGE });
+    return;
+  }
+
+  const { text, cited, segments } = collectAnswer(message.content, fragments);
+  if (cited.length === 0) {
+    doseParameters.abort();
+    console.log(`Grounded request ${requestId}: answer has no citations`);
+    await answerWithoutSources(sse, request, dependencies);
+    return;
+  }
+  await writeDoseParameters(sse, request);
+  const unverified = findUnverifiedNumbers(segments);
+  if (unverified.length > 0) {
+    console.warn(
+      `Grounded request ${requestId}: answer withheld, unverified numbers=${unverified.length} ${describeUnverifiedNumbers(segments, fragments)}, citations=${cited.length}`,
+    );
+    await writeWithheldAnswer(sse, cited);
+    return;
+  }
+  await writeGroundedAnswer(sse, { text, cited, stopReason: message.stop_reason ?? 'end_turn' });
+};
+
 const loadIndex = async (sse: SSEStreamingApi, dependencies: GroundedDependencies): Promise<SourceIndex | null> => {
   try {
     return await dependencies.getSourceIndex();
@@ -180,29 +232,11 @@ export const pipeGroundedReply = async (
     await answerWithoutSources(sse, requestWithoutSources, dependencies);
     return;
   }
-
-  const message = await readFinalMessage(sse, dependencies.startStream(toGroundedMessages(messages, fragments)));
-  if (!message) return;
-  const { input_tokens: input, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: cacheWrite } = message.usage;
-  console.log(`Grounded request ${requestId}: fragments=${fragments.length} input=${input} cache_read=${cacheRead ?? 0} cache_write=${cacheWrite ?? 0}`);
-  if (message.stop_reason === REFUSAL_STOP_REASON) {
-    await writeEvent(sse, 'error', { message: REFUSAL_MESSAGE });
-    return;
+  const doseParameters = startDoseParameters({ requestId, messages }, dependencies);
+  sse.onAbort(() => doseParameters.abort());
+  try {
+    await answerFromFragments(sse, { ...requestWithoutSources, fragments, doseParameters }, dependencies);
+  } finally {
+    doseParameters.abort();
   }
-
-  const { text, cited, segments } = collectAnswer(message.content, fragments);
-  if (cited.length === 0) {
-    console.log(`Grounded request ${requestId}: answer has no citations`);
-    await answerWithoutSources(sse, requestWithoutSources, dependencies);
-    return;
-  }
-  const unverified = findUnverifiedNumbers(segments);
-  if (unverified.length > 0) {
-    console.warn(
-      `Grounded request ${requestId}: answer withheld, unverified numbers=${unverified.length} ${describeUnverifiedNumbers(segments, fragments)}, citations=${cited.length}`,
-    );
-    await writeWithheldAnswer(sse, cited);
-    return;
-  }
-  await writeGroundedAnswer(sse, { text, cited, stopReason: message.stop_reason ?? 'end_turn' });
 };

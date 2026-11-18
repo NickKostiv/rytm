@@ -12,7 +12,7 @@ const NON_ASCII_NUMERAL = /(?![0-9])\p{N}/gu;
 const SIMPLE_DECIMAL = /^\d+\.\d+$/;
 const RATIO_SEPARATOR = ':';
 
-const normalizeNumberText = (text: string): string =>
+export const normalizeNumberText = (text: string): string =>
   text
     .replace(SPACE_VARIANTS, ' ')
     .replace(DASH_VARIANTS, '-')

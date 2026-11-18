@@ -1,5 +1,8 @@
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { writeFileAtomic } from './writeFileAtomic.js';
+
+export const SOURCE_REGISTRY_PATH = fileURLToPath(new URL('../../data/sources/registry.json', import.meta.url));
 
 export const SOURCE_VALIDITIES = ['unknown', 'in_force', 'superseded', 'needs_review'] as const;
 export type SourceValidity = (typeof SOURCE_VALIDITIES)[number];

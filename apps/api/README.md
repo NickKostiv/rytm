@@ -63,3 +63,12 @@ Off by default. Without the variable `/chat` uses the legacy prompt and the lega
 - Order dates: when the document text disagrees with the file name, the document date is used only if another registry row of the same order confirms it from its own text (order 1237 annexes 3, 4, 6 → 16.07.2024). Otherwise the file-name date stays and the mismatch stays in the registry (order 536).
 - `citations[].title` is the fragment's section heading; order, date, annex and page are separate fields. The `search_result` title sent to the model keeps the full order reference.
 - An answer with no citations goes through the same classification as «nothing qualifies»: `medical` → «Цього немає в базі протоколів МОЗ», `conversation` → the conversation reply. This covers «Дякую» after a medical question, which retrieves fragments through the previous question.
+
+## Dosing (`src/dosing/`, KAN-97)
+
+Contract: `docs/dosing-chat-contract.md`. The dose itself comes only from `calculateDose` in `@rytm/dosing`.
+
+- Rule set: `MOH_DOSING_RULES` loaded with the validities of `data/sources/registry.json` (not the offline validities), once per process, retried after a failed load.
+- `/chat`, grounded mode only: when retrieval finds fragments, a structured-output request (`DOSING_PARAMETERS_SYSTEM_PROMPT`, effort `low`, no fragments) runs in parallel with the grounded request and returns drug, indication and route from lists built from the rule set, plus the weight. The backend drops a weight that is not in the user's own messages, matches the rule deterministically and sends `dose_parameters` before `delta`, only when the answer ends with citations (cited or `withheld`). An extraction or rule-set failure sends no card; the text answer is unaffected.
+- `POST /dose { ruleId, weightKg }`: no model call. `200 {kind:"dose", ...}` or `200 {kind:"rejected", reason}`, `400` on a malformed body, `503` when the rule set or registry fails to load.
+- Logs carry the request id, status, rule id, missing list and rejection reason; never message text, age, weight or dose.

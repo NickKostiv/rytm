@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { createLazyLoader } from '../lazyLoader.js';
 import type { SourceChunk } from '../sources/sourceChunks.js';
-import { isRetrievable, readRegistry, type SourceRow } from '../sources/sourceRegistry.js';
+import { isRetrievable, readRegistry, SOURCE_REGISTRY_PATH, type SourceRow } from '../sources/sourceRegistry.js';
 import { resolveOrderDates } from './resolveOrderDates.js';
 import { toQueryTerms, toSearchTerms } from './searchTerms.js';
 
@@ -113,15 +114,6 @@ export const loadSourceIndex = async (chunksPath: string, registryPath: string):
 };
 
 const CHUNKS_PATH = fileURLToPath(new URL('../../data/sources/chunks.jsonl', import.meta.url));
-const REGISTRY_PATH = fileURLToPath(new URL('../../data/sources/registry.json', import.meta.url));
 
-export const createLazySourceIndex = (): (() => Promise<SourceIndex>) => {
-  let pending: Promise<SourceIndex> | null = null;
-  return () => {
-    pending ??= loadSourceIndex(CHUNKS_PATH, REGISTRY_PATH).catch((error: unknown) => {
-      pending = null;
-      throw error;
-    });
-    return pending;
-  };
-};
+export const createLazySourceIndex = (): (() => Promise<SourceIndex>) =>
+  createLazyLoader(() => loadSourceIndex(CHUNKS_PATH, SOURCE_REGISTRY_PATH));

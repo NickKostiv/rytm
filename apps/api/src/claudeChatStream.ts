@@ -1,6 +1,9 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { BetaMessageStream } from '@anthropic-ai/sdk/lib/BetaMessageStream';
 import type { ChatMessage } from './chatRequest.js';
+import { DOSE_EXTRACTION_SCHEMA } from './dosing/doseExtraction.js';
+import type { StructuredOutput } from './dosing/doseExtraction.js';
+import { DOSING_PARAMETERS_SYSTEM_PROMPT } from './dosing/dosingParametersPrompt.js';
 import { CONVERSATION_SYSTEM_PROMPT, GROUNDED_SYSTEM_PROMPT, SYSTEM_PROMPT } from './systemPrompt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -9,8 +12,8 @@ const MAX_TOKENS = 16000;
 const EFFORT = 'medium';
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
-const CONVERSATION_MAX_TOKENS = 4096;
-const CONVERSATION_EFFORT = 'low';
+const STRUCTURED_MAX_TOKENS = 4096;
+const STRUCTURED_EFFORT = 'low';
 const CONVERSATION_REPLY_SCHEMA = {
   type: 'object',
   properties: {
@@ -62,27 +65,56 @@ const toConversationReply = (output: unknown): ConversationReply => {
   return { kind, text: text.trim() };
 };
 
+type StructuredRequest = { systemPrompt: string; schema: Record<string, unknown> };
+
+type StructuredOutputWithUsage = StructuredOutput & { usage: string };
+
+const createStructuredOutput = async (
+  client: Anthropic,
+  request: StructuredRequest,
+  { messages, signal }: { messages: ChatMessage[]; signal: AbortSignal },
+): Promise<StructuredOutputWithUsage> => {
+  const message = await client.beta.messages.create(
+    {
+      model: CLAUDE_MODEL,
+      max_tokens: STRUCTURED_MAX_TOKENS,
+      thinking: { type: 'adaptive' },
+      output_config: { effort: STRUCTURED_EFFORT, format: { type: 'json_schema', schema: request.schema } },
+      betas: [FALLBACK_BETA],
+      fallbacks: 'default',
+      system: [{ type: 'text', text: request.systemPrompt, cache_control: { type: 'ephemeral' } }],
+      messages,
+    },
+    { signal },
+  );
+  const { input_tokens: input, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: cacheWrite } = message.usage;
+  const text = message.content.flatMap((block) => (block.type === 'text' ? [block.text] : [])).join('');
+  return { stopReason: message.stop_reason, text, usage: `input=${input} cache_read=${cacheRead ?? 0} cache_write=${cacheWrite ?? 0}` };
+};
+
+const CONVERSATION_REQUEST: StructuredRequest = {
+  systemPrompt: CONVERSATION_SYSTEM_PROMPT,
+  schema: CONVERSATION_REPLY_SCHEMA,
+};
+
+const DOSE_EXTRACTION_REQUEST: StructuredRequest = {
+  systemPrompt: DOSING_PARAMETERS_SYSTEM_PROMPT,
+  schema: DOSE_EXTRACTION_SCHEMA,
+};
+
 export const createConversationReply = async (
   client: Anthropic,
   messages: ChatMessage[],
   signal: AbortSignal,
 ): Promise<ConversationReply> => {
-  const message = await client.beta.messages.create(
-    {
-      model: CLAUDE_MODEL,
-      max_tokens: CONVERSATION_MAX_TOKENS,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: CONVERSATION_EFFORT, format: { type: 'json_schema', schema: CONVERSATION_REPLY_SCHEMA } },
-      betas: [FALLBACK_BETA],
-      fallbacks: 'default',
-      system: [{ type: 'text', text: CONVERSATION_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages,
-    },
-    { signal },
-  );
-  const outputText = message.content.flatMap((block) => (block.type === 'text' ? [block.text] : [])).join('');
-  const reply = message.stop_reason === 'end_turn' ? toConversationReply(parseJson(outputText)) : MEDICAL_REPLY;
-  const { input_tokens: input, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: cacheWrite } = message.usage;
-  console.log(`Conversation reply: kind=${reply.kind} stop=${message.stop_reason} input=${input} cache_read=${cacheRead ?? 0} cache_write=${cacheWrite ?? 0}`);
+  const output = await createStructuredOutput(client, CONVERSATION_REQUEST, { messages, signal });
+  const reply = output.stopReason === 'end_turn' ? toConversationReply(parseJson(output.text)) : MEDICAL_REPLY;
+  console.log(`Conversation reply: kind=${reply.kind} stop=${output.stopReason} ${output.usage}`);
   return reply;
+};
+
+export const createDoseExtraction = async (client: Anthropic, messages: ChatMessage[], signal: AbortSignal): Promise<StructuredOutput> => {
+  const output = await createStructuredOutput(client, DOSE_EXTRACTION_REQUEST, { messages, signal });
+  console.log(`Dose parameters: stop=${output.stopReason} ${output.usage}`);
+  return output;
 };

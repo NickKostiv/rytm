@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import type { RuleSet } from '@rytm/dosing';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { cors } from 'hono/cors';
@@ -8,7 +9,9 @@ import { parseChatRequest } from './chatRequest.js';
 import type { ChatMessage } from './chatRequest.js';
 import { REFUSAL_MESSAGE, toUserSafeChatError } from './chatErrorMessage.js';
 import { writeEvent } from './chatSse.js';
-import { createConversationReply, startClaudeChatStream, startGroundedChatStream } from './claudeChatStream.js';
+import { createConversationReply, createDoseExtraction, startClaudeChatStream, startGroundedChatStream } from './claudeChatStream.js';
+import { respondToDoseRequest } from './dosing/doseResponse.js';
+import { createLazyDoseRuleSet } from './dosing/doseRuleSet.js';
 import { pipeGroundedReply } from './grounding/groundedReply.js';
 import type { GroundedDependencies } from './grounding/groundedReply.js';
 import { createLazySourceIndex } from './retrieval/sourceIndex.js';
@@ -45,16 +48,24 @@ const pipeClaudeReply = async (sse: SSEStreamingApi, client: Anthropic, messages
   }
 };
 
-const createGroundedDependencies = (client: Anthropic): GroundedDependencies | null =>
-  process.env.GROUNDED_MODE === '1'
-    ? {
-        getSourceIndex: createLazySourceIndex(),
-        startStream: (messages) => startGroundedChatStream(client, messages),
-        replyWithoutSources: (messages, signal) => createConversationReply(client, messages, signal),
-      }
-    : null;
+type AppDependencies = { grounded: GroundedDependencies | null; getRuleSet: () => Promise<RuleSet> };
 
-export const createApp = (client: Anthropic, grounded = createGroundedDependencies(client)): Hono => {
+const createAppDependencies = (client: Anthropic): AppDependencies => {
+  const getRuleSet = createLazyDoseRuleSet();
+  const grounded: GroundedDependencies | null =
+    process.env.GROUNDED_MODE === '1'
+      ? {
+          getSourceIndex: createLazySourceIndex(),
+          startStream: (messages) => startGroundedChatStream(client, messages),
+          replyWithoutSources: (messages, signal) => createConversationReply(client, messages, signal),
+          extractDoseParameters: (messages, signal) => createDoseExtraction(client, messages, signal),
+          getRuleSet,
+        }
+      : null;
+  return { grounded, getRuleSet };
+};
+
+export const createApp = (client: Anthropic, { grounded, getRuleSet } = createAppDependencies(client)): Hono => {
   const app = new Hono();
   app.use('*', cors());
   app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -66,6 +77,10 @@ export const createApp = (client: Anthropic, grounded = createGroundedDependenci
     return streamSSE(c, (sse) =>
       grounded ? pipeGroundedReply(sse, parsed.messages, grounded) : pipeClaudeReply(sse, client, parsed.messages),
     );
+  });
+  app.post('/dose', async (c) => {
+    const { status, body } = await respondToDoseRequest(await readJsonBody(c), getRuleSet);
+    return c.json(body, status);
   });
   return app;
 };
