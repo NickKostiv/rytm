@@ -55,13 +55,13 @@ function MarkdownBlock({ token, isFirst }: { token: Token; isFirst: boolean }) {
   switch (token.type) {
     case 'paragraph':
       return (
-        <ThemedText selectable style={styles.paragraph}>
+        <ThemedText selectable type="answer">
           <MarkdownInline tokens={token.tokens} />
         </ThemedText>
       );
     case 'text':
       return token.tokens ? (
-        <ThemedText selectable style={styles.paragraph}>
+        <ThemedText selectable type="answer">
           <MarkdownInline tokens={token.tokens} />
         </ThemedText>
       ) : (
@@ -73,10 +73,8 @@ function MarkdownBlock({ token, isFirst }: { token: Token; isFirst: boolean }) {
         <ThemedText
           selectable
           accessibilityRole="header"
-          style={[
-            isLarge ? styles.largeHeading : styles.smallHeading,
-            isLarge && !isFirst && styles.largeHeadingSpacing,
-          ]}>
+          type={isLarge ? 'answerHeading' : 'answerSubheading'}
+          style={isLarge && !isFirst && styles.largeHeadingSpacing}>
           <MarkdownInline tokens={token.tokens} />
         </ThemedText>
       );
@@ -111,7 +109,7 @@ function CodeBlock({ text }: { text: string }) {
       horizontal
       style={[styles.codeBlock, { backgroundColor: theme.backgroundElement }]}
       contentContainerStyle={styles.codeBlockContent}>
-      <ThemedText selectable style={styles.codeText}>
+      <ThemedText selectable type="caption" style={styles.codeText}>
         {text}
       </ThemedText>
     </ScrollView>
@@ -120,7 +118,7 @@ function CodeBlock({ text }: { text: string }) {
 
 function PlainParagraph({ text }: { text: string }) {
   return (
-    <ThemedText selectable style={styles.paragraph}>
+    <ThemedText selectable type="answer">
       {text}
     </ThemedText>
   );
@@ -132,8 +130,9 @@ function MarkdownList({ list }: { list: Tokens.List }) {
       {list.items.map((item, index) => (
         <View key={index} style={styles.listItem}>
           <ThemedText
+            type="answer"
             themeColor="textSecondary"
-            style={[styles.paragraph, list.ordered ? styles.orderedMarker : styles.bulletMarker]}>
+            style={list.ordered ? styles.orderedMarker : styles.bulletMarker}>
             {list.ordered ? (ORDERED_MARKER_PATTERN.exec(item.raw)?.[1] ?? '') : BULLET}
           </ThemedText>
           <View style={styles.listItemContent}>
@@ -146,23 +145,8 @@ function MarkdownList({ list }: { list: Tokens.List }) {
 }
 
 const styles = StyleSheet.create({
-  paragraph: {
-    fontSize: 17,
-    lineHeight: 26,
-    fontWeight: 400,
-  },
-  largeHeading: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: 700,
-  },
   largeHeadingSpacing: {
     marginTop: Spacing.two,
-  },
-  smallHeading: {
-    fontSize: 17,
-    lineHeight: 26,
-    fontWeight: 700,
   },
   list: {
     gap: MARKDOWN_LIST_ITEM_GAP,
@@ -192,9 +176,6 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontFamily: Fonts.mono,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 400,
   },
   rule: {
     height: BORDER_WIDTH,

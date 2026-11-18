@@ -16,7 +16,7 @@ type UserMessageProps = {
 export function UserMessage({ content }: UserMessageProps) {
   return (
     <ThemedView type="backgroundElement" style={styles.container}>
-      <ThemedText selectable style={styles.text}>
+      <ThemedText selectable>
         {content}
       </ThemedText>
     </ThemedView>
@@ -30,10 +30,5 @@ const styles = StyleSheet.create({
     borderRadius: USER_MESSAGE_RADIUS,
     paddingVertical: USER_MESSAGE_PADDING_VERTICAL,
     paddingHorizontal: Spacing.three,
-  },
-  text: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 400,
   },
 });

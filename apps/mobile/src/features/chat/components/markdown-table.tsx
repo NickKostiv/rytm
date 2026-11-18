@@ -84,7 +84,7 @@ export function MarkdownTable({ table }: MarkdownTableProps) {
                         columnIndex < columnCount - 1 && styles.cellRightBorder,
                         !isLastRow && styles.cellBottomBorder,
                       ]}>
-                      <ThemedText selectable style={isHeader ? styles.headerText : styles.bodyText}>
+                      <ThemedText selectable type="table" style={isHeader && styles.headerText}>
                         <MarkdownInline tokens={cell.tokens} />
                       </ThemedText>
                     </View>
@@ -96,7 +96,7 @@ export function MarkdownTable({ table }: MarkdownTableProps) {
         </View>
       </ScrollView>
       {isScrollable && (
-        <ThemedText themeColor="textSecondary" style={styles.scrollHint}>
+        <ThemedText type="caption" themeColor="textSecondary" style={styles.scrollHint}>
           {COPY.tableScrollHint}
         </ThemedText>
       )}
@@ -128,20 +128,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: BORDER_WIDTH,
   },
   headerText: {
-    fontSize: 15,
-    lineHeight: 20,
     fontWeight: 600,
-  },
-  bodyText: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: 400,
-    fontVariant: ['tabular-nums'],
   },
   scrollHint: {
     marginTop: Spacing.two,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 400,
   },
 });

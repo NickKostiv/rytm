@@ -22,21 +22,16 @@ type SourcesSectionProps = {
 
 export function SourcesSection({ sources }: SourcesSectionProps) {
   if (sources.length === 0) {
-    return (
-      <View style={[styles.section, styles.notice]}>
-        <ThemedText themeColor="textSecondary" style={styles.caption}>
-          !
-        </ThemedText>
-        <ThemedText themeColor="textSecondary" style={[styles.caption, styles.noticeText]}>
-          {COPY.noSources}
-        </ThemedText>
-      </View>
-    );
+    return null;
   }
 
   return (
     <View style={styles.section}>
-      <ThemedText accessibilityRole="header" themeColor="textSecondary" style={styles.heading}>
+      <ThemedText
+        accessibilityRole="header"
+        type="caption"
+        themeColor="textSecondary"
+        style={styles.heading}>
         {COPY.sourcesTitle}
       </ThemedText>
       {sources.map((source, index) => (
@@ -93,21 +88,22 @@ function SourceItem({ source, position, isFirst }: SourceItemProps) {
         accessibilityHint={COPY.sourceA11yHint}
         onPress={() => void handlePress()}
         style={({ pressed }) => [styles.item, pressed && { backgroundColor: theme.backgroundElement }]}>
-        <ThemedText style={styles.title}>
-          <ThemedText themeColor="textSecondary" style={styles.title}>
+        <ThemedText type="bodyCompact" style={styles.title}>
+          <ThemedText type="bodyCompact" themeColor="textSecondary" style={styles.title}>
             {`${position}. `}
           </ThemedText>
           {source.title}
         </ThemedText>
-        <ThemedText themeColor="textSecondary" style={styles.caption}>
+        <ThemedText type="caption" themeColor="textSecondary">
           {orderLine}
         </ThemedText>
         <View style={styles.metaRow}>
-          <ThemedText themeColor="accent" style={styles.host}>
+          <ThemedText type="caption" themeColor="accent" style={styles.host}>
             {COPY.sourceHost}
           </ThemedText>
           {!source.isValidityVerified && (
             <ThemedText
+              type="footnote"
               themeColor="textSecondary"
               style={[styles.chip, { borderColor: theme.borderStrong }]}>
               {COPY.sourceUnverified}
@@ -116,7 +112,7 @@ function SourceItem({ source, position, isFirst }: SourceItemProps) {
         </View>
       </Pressable>
       {openState.status === 'failed' && (
-        <ThemedText themeColor="danger" style={styles.caption}>
+        <ThemedText type="caption" themeColor="danger">
           {openState.message}
         </ThemedText>
       )}
@@ -128,16 +124,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: Spacing.two,
   },
-  notice: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  noticeText: {
-    flex: 1,
-  },
   heading: {
-    fontSize: 14,
-    lineHeight: 20,
     fontWeight: 700,
   },
   itemDivider: {
@@ -148,14 +135,7 @@ const styles = StyleSheet.create({
     paddingVertical: SOURCE_ITEM_PADDING_VERTICAL,
   },
   title: {
-    fontSize: 16,
-    lineHeight: 22,
     fontWeight: 600,
-  },
-  caption: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 400,
   },
   metaRow: {
     flexDirection: 'row',
@@ -164,16 +144,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   host: {
-    fontSize: 14,
-    lineHeight: 20,
     fontWeight: 600,
   },
   chip: {
     borderWidth: BORDER_WIDTH,
     borderRadius: SOURCE_CHIP_RADIUS,
     paddingHorizontal: SOURCE_CHIP_PADDING_HORIZONTAL,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: 400,
   },
 });

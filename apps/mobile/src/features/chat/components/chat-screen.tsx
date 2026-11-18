@@ -34,7 +34,7 @@ export function ChatScreen() {
       <SafeAreaView edges={['bottom']} style={styles.safeArea}>
         <Animated.View style={[styles.content, keyboardOffsetStyle]}>
           {messages.length === 0 ? (
-            <ChatEmptyState />
+            <ChatEmptyState onExamplePress={sendMessage} />
           ) : (
             <FlatList
               inverted

@@ -19,18 +19,6 @@ export const Colors = {
     border: '#D6D8DD',
     borderStrong: '#7E838C',
     danger: '#B42318',
-    flagGreenBg: '#E7F4EA',
-    flagGreenFg: '#17602D',
-    flagGreenIcon: '#1E7B3A',
-    flagYellowBg: '#FFF4D6',
-    flagYellowFg: '#6E4600',
-    flagYellowIcon: '#A87500',
-    flagRedBg: '#FCEBEB',
-    flagRedFg: '#9E1B1B',
-    flagRedIcon: '#C62828',
-    flagNeutralIcon: '#6B7078',
-    flagGlyph: '#FFFFFF',
-    flagGlyphYellow: '#1A1300',
   },
   dark: {
     text: '#ffffff',
@@ -43,18 +31,6 @@ export const Colors = {
     border: '#34373C',
     borderStrong: '#7A7F87',
     danger: '#FF8A80',
-    flagGreenBg: '#0E2616',
-    flagGreenFg: '#86DBA0',
-    flagGreenIcon: '#4CC26E',
-    flagYellowBg: '#2B2208',
-    flagYellowFg: '#F5CF5C',
-    flagYellowIcon: '#F2C230',
-    flagRedBg: '#341010',
-    flagRedFg: '#FFA3A3',
-    flagRedIcon: '#FF6B6B',
-    flagNeutralIcon: '#8C9198',
-    flagGlyph: '#000000',
-    flagGlyphYellow: '#1A1300',
   },
 } as const;
 
@@ -96,4 +72,4 @@ export const Spacing = {
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const MaxContentWidth = 720;

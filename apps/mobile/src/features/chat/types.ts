@@ -1,5 +1,3 @@
-import type { AnswerFlag } from '@/features/chat/parse-answer-flag';
-
 export type ChatRole = 'user' | 'assistant';
 
 export type ApiMessage = {
@@ -27,7 +25,6 @@ export type AssistantMessage = {
   id: string;
   role: 'assistant';
   content: string;
-  flag: AnswerFlag | null;
   sources: AnswerSource[];
 } & (
   | { status: 'streaming' }
@@ -49,7 +46,6 @@ export type ChatCitation = {
 };
 
 export type ChatStreamEvent =
-  | { type: 'flag'; flag: AnswerFlag }
   | { type: 'delta'; text: string }
   | { type: 'citations'; items: ChatCitation[] }
   | { type: 'done'; stopReason: string }

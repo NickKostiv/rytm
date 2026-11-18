@@ -1,4 +1,3 @@
-import { toFlagLevel } from '@/features/chat/parse-answer-flag';
 import type { ChatCitation, ChatStreamEvent } from '@/features/chat/types';
 
 const FRAME_SEPARATOR = '\n\n';
@@ -19,12 +18,6 @@ function readNumberField(payload: unknown, field: string): number {
     throw new Error(`Malformed "${field}" in stream event`);
   }
   return payload[field];
-}
-
-function readFlagEvent(payload: unknown): ChatStreamEvent {
-  const level = toFlagLevel(readStringField(payload, 'level'));
-  if (!level) throw new Error('Malformed "level" in stream event');
-  return { type: 'flag', flag: { level, explanation: readStringField(payload, 'explanation') } };
 }
 
 function toCitation(item: unknown): ChatCitation {
@@ -48,8 +41,6 @@ function readCitationsEvent(payload: unknown): ChatStreamEvent {
 
 function toStreamEvent(eventName: string, payload: unknown): ChatStreamEvent | null {
   switch (eventName) {
-    case 'flag':
-      return readFlagEvent(payload);
     case 'delta':
       return { type: 'delta', text: readStringField(payload, 'text') };
     case 'citations':

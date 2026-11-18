@@ -16,12 +16,13 @@ export const TOUCH_TARGET_SIZE = 48;
 export const COMPOSER_LINE_HEIGHT = 24;
 export const COMPOSER_MAX_LINES = 5;
 export const PILL_RADIUS = 24;
-export const COMPOSER_INPUT_PADDING_VERTICAL = 12;
+export const COMPOSER_FIELD_MIN_HEIGHT = 56;
+export const COMPOSER_FIELD_RADIUS = 28;
+export const COMPOSER_INPUT_PADDING_VERTICAL = 14;
+export const COMPOSER_ACTION_SIZE = 40;
+export const EXAMPLE_ROW_RADIUS = 12;
+export const EXAMPLE_ROW_PADDING_VERTICAL = 12;
 export const RETRY_MIN_WIDTH = 120;
-
-export const FLAG_BLOCK_RADIUS = 12;
-export const FLAG_BLOCK_SPACING = 12;
-export const FLAG_DISC_SIZE = 28;
 
 export const MARKDOWN_BLOCK_GAP = 12;
 export const MARKDOWN_LIST_ITEM_GAP = 6;
@@ -41,11 +42,21 @@ export const SOURCE_CHIP_RADIUS = 6;
 export const SOURCE_CHIP_PADDING_HORIZONTAL = 6;
 export const ALLOWED_SOURCE_HOSTS = ['moz.gov.ua', 'www.moz.gov.ua'];
 
+export const EXAMPLE_QUESTIONS = [
+  'Анафілаксія: алгоритм допомоги',
+  'Гіпоглікемія: алгоритм допомоги',
+  'Судоми в дитини: що вводити?',
+] as const;
+
 const NBSP = '\u00A0';
 
 export const COPY = {
-  emptyTitle: 'Rytm',
-  emptyHint: 'Запитайте про протокол, препарат або дозування.',
+  emptyTitle: 'Довідник протоколів МОЗ для бригад ЕМД',
+  emptyDescription:
+    'Відповідає лише за протоколами МОЗ і показує джерело. Якщо відповіді в базі немає — так і скаже.',
+  examplesLabel: 'Приклади запитань',
+  exampleHint: 'Надсилає це запитання',
+  inputA11yLabel: 'Запитання до довідника',
   inputPlaceholder: 'Ваше запитання',
   send: 'Надіслати',
   stop: 'Зупинити відповідь',
@@ -54,11 +65,6 @@ export const COPY = {
   stoppedEmpty: 'Відповідь зупинено',
   retry: 'Повторити',
   retryA11y: 'Повторити запит',
-  flagPending: 'Визначаю рівень…',
-  flagGreen: 'Зелений рівень',
-  flagYellow: 'Жовтий рівень',
-  flagRed: 'Червоний рівень',
-  flagUnavailable: 'Рівень не визначено',
   tableScrollHint: 'Гортайте таблицю вбік →',
   sourcesTitle: 'Джерела',
   sourceOrder: (orderNumber: string, orderDate: string) =>
@@ -71,7 +77,6 @@ export const COPY = {
   sourceA11yLabel: (position: number, { title, orderNumber, orderDate, page }: AnswerSource) =>
     `Джерело ${position}: ${title}, наказ № ${orderNumber} від ${orderDate}, ${page ? `сторінка ${page}, ` : ''}moz.gov.ua, чинність не перевірено`,
   sourceA11yHint: 'Відкриває документ у браузері',
-  noSources: 'Джерела не знайдено — відповідь не підтверджена документами МОЗ.',
   networkError: 'Не вдалося отримати відповідь. Перевірте зʼєднання.',
   interruptedStream: 'Відповідь обірвалася. Спробуйте ще раз.',
   serverError: (status: number) => `Помилка сервера (${status})`,

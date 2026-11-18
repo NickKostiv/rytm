@@ -2,7 +2,6 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { FlagBlock, type FlagVariant } from '@/features/chat/components/flag-block';
 import { MarkdownView } from '@/features/chat/components/markdown-view';
 import { SourcesSection } from '@/features/chat/components/sources-section';
 import {
@@ -13,33 +12,8 @@ import {
   RETRY_MIN_WIDTH,
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
-import { parseAnswerFlag } from '@/features/chat/parse-answer-flag';
 import type { AssistantMessage as AssistantMessageData } from '@/features/chat/types';
 import { useTheme } from '@/hooks/use-theme';
-
-type AnswerDisplay = {
-  flag: { variant: FlagVariant; explanation?: string } | null;
-  body: string;
-};
-
-function resolveAnswerDisplay(message: AssistantMessageData): AnswerDisplay {
-  if (message.flag) {
-    return {
-      flag: { variant: message.flag.level, explanation: message.flag.explanation },
-      body: message.content,
-    };
-  }
-  const parsed = parseAnswerFlag(message.content);
-  const isLive = message.status === 'streaming' || message.status === 'done';
-
-  if (parsed.status === 'parsed') {
-    return { flag: { variant: parsed.flag.level, explanation: parsed.flag.explanation }, body: parsed.body };
-  }
-  if (parsed.status === 'pending' && message.status === 'streaming') {
-    return { flag: { variant: 'pending' }, body: '' };
-  }
-  return { flag: isLive ? { variant: 'unavailable' } : null, body: message.content };
-}
 
 const TABLE_CELL_SEPARATOR = '|';
 const CUT_OFF_MARKER = '\n\n…';
@@ -65,7 +39,7 @@ type AssistantMessageProps = {
 export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessageProps) {
   const theme = useTheme();
 
-  if (message.status === 'streaming' && message.content === '' && !message.flag) {
+  if (message.status === 'streaming' && message.content === '') {
     return (
       <View accessibilityLiveRegion="polite" style={styles.waitingRow}>
         <ActivityIndicator size="small" color={theme.textSecondary} accessibilityRole="progressbar" />
@@ -76,17 +50,15 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
     );
   }
 
-  const { flag, body: parsedBody } = resolveAnswerDisplay(message);
-  const body = toDisplayedBody(parsedBody, message.status);
+  const body = toDisplayedBody(message.content, message.status);
   const retryButton = canRetry ? <RetryButton onPress={() => onRetry(message.id)} /> : null;
 
   return (
     <View style={styles.container}>
-      {flag && <FlagBlock variant={flag.variant} explanation={flag.explanation} />}
       {body !== '' && <MarkdownView markdown={body} />}
       {message.status === 'stopped' && (
         <View>
-          <ThemedText themeColor="textSecondary" style={styles.caption}>
+          <ThemedText type="caption" themeColor="textSecondary">
             {COPY.stopped}
           </ThemedText>
           {retryButton}
@@ -136,11 +108,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 15,
     lineHeight: 22,
-    fontWeight: 400,
-  },
-  caption: {
-    fontSize: 14,
-    lineHeight: 20,
     fontWeight: 400,
   },
   errorRow: {

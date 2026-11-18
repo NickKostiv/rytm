@@ -44,8 +44,6 @@ export function applyStreamEvent(
   event: ChatStreamEvent,
 ): AssistantMessage {
   switch (event.type) {
-    case 'flag':
-      return { ...message, flag: event.flag };
     case 'delta':
       return { ...message, content: message.content + event.text, status: 'streaming' };
     case 'citations':

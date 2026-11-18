@@ -73,7 +73,6 @@ export function useChat(): {
       id: createId(),
       role: 'assistant',
       content: '',
-      flag: null,
       sources: [],
       status: 'streaming',
     };
@@ -87,7 +86,6 @@ export function useChat(): {
     updateAssistant(assistantId, (message) => ({
       ...message,
       content: '',
-      flag: null,
       sources: [],
       status: 'streaming',
     }));
