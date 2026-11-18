@@ -17,7 +17,7 @@ const VALIDITY_NOT_VERIFIED = 'чинність не перевірено';
 
 const formatOrderDate = (isoDate: string): string => isoDate.split('-').reverse().join('.');
 
-const fragmentTitle = ({ row, chunk }: RetrievedFragment): string => {
+export const fragmentTitle = ({ row, chunk }: RetrievedFragment): string => {
   const annex = row.annex ? `, додаток ${row.annex}` : ', додаток';
   const section = chunk.headingPath[0] ? ` — ${chunk.headingPath[0]}` : '';
   const validity = row.validity === 'in_force' ? '' : ` (${VALIDITY_NOT_VERIFIED})`;

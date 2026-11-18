@@ -17,7 +17,7 @@ const BM25_B = 0.75;
 const MIN_QUERY_COVERAGE = 0.6;
 const MIN_DOCUMENT_SCORE_RATIO = 0.5;
 const MAX_FRAGMENTS_PER_DOCUMENT = 3;
-const MAX_FRAGMENTS_TOTAL = 16;
+export const MAX_FRAGMENTS_TOTAL = 16;
 const UNSEEN_TERM_DOCUMENT_FREQUENCY = 0.5;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

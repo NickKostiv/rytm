@@ -1,6 +1,5 @@
-import { MOH_DOSING_RULES } from '@rytm/dosing';
+import { MOH_DOSING_RULES, normalizeNumberText } from '@rytm/dosing';
 import type { Route } from '@rytm/dosing';
-import { normalizeNumberText } from '../grounding/answerNumbers.js';
 
 export const NOT_IN_LIST = 'other';
 

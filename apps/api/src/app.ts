@@ -9,11 +9,21 @@ import { parseChatRequest } from './chatRequest.js';
 import type { ChatMessage } from './chatRequest.js';
 import { REFUSAL_MESSAGE, toUserSafeChatError } from './chatErrorMessage.js';
 import { writeEvent } from './chatSse.js';
-import { createConversationReply, createDoseExtraction, startClaudeChatStream, startGroundedChatStream } from './claudeChatStream.js';
+import {
+  createConversationReply,
+  createDoseExtraction,
+  createJudgeVerdict,
+  createVerifiedClassification,
+  startClaudeChatStream,
+  startGroundedChatStream,
+  startVerifiedChatStream,
+} from './claudeChatStream.js';
 import { respondToDoseRequest } from './dosing/doseResponse.js';
 import { createLazyDoseRuleSet } from './dosing/doseRuleSet.js';
 import { pipeGroundedReply } from './grounding/groundedReply.js';
 import type { GroundedDependencies } from './grounding/groundedReply.js';
+import { pipeVerifiedReply } from './grounding/verifiedReply.js';
+import type { VerifiedDependencies } from './grounding/verifiedReply.js';
 import { createLazySourceIndex } from './retrieval/sourceIndex.js';
 
 const HTTP_BAD_REQUEST = 400;
@@ -48,7 +58,20 @@ const pipeClaudeReply = async (sse: SSEStreamingApi, client: Anthropic, messages
   }
 };
 
-type AppDependencies = { grounded: GroundedDependencies | null; getRuleSet: () => Promise<RuleSet> };
+type AppDependencies = {
+  grounded: GroundedDependencies | null;
+  verified?: VerifiedDependencies | null;
+  getRuleSet: () => Promise<RuleSet>;
+};
+
+const createVerifiedDependencies = (client: Anthropic, grounded: GroundedDependencies): VerifiedDependencies => ({
+  getSourceIndex: grounded.getSourceIndex,
+  extractDoseParameters: grounded.extractDoseParameters,
+  getRuleSet: grounded.getRuleSet,
+  startStream: (request) => startVerifiedChatStream(client, request),
+  classify: (messages, signal) => createVerifiedClassification(client, messages, signal),
+  judge: (judgeInput, signal) => createJudgeVerdict(client, judgeInput, signal),
+});
 
 const createAppDependencies = (client: Anthropic): AppDependencies => {
   const getRuleSet = createLazyDoseRuleSet();
@@ -62,10 +85,21 @@ const createAppDependencies = (client: Anthropic): AppDependencies => {
           getRuleSet,
         }
       : null;
-  return { grounded, getRuleSet };
+  const verified = grounded && process.env.VERIFIED_MODE === '1' ? createVerifiedDependencies(client, grounded) : null;
+  return { grounded, verified, getRuleSet };
 };
 
-export const createApp = (client: Anthropic, { grounded, getRuleSet } = createAppDependencies(client)): Hono => {
+const pipeChatReply = (
+  sse: SSEStreamingApi,
+  messages: ChatMessage[],
+  { client, grounded, verified }: { client: Anthropic; grounded: GroundedDependencies | null; verified: VerifiedDependencies | null },
+): Promise<void> => {
+  if (verified) return pipeVerifiedReply(sse, messages, verified);
+  if (grounded) return pipeGroundedReply(sse, messages, grounded);
+  return pipeClaudeReply(sse, client, messages);
+};
+
+export const createApp = (client: Anthropic, { grounded, verified = null, getRuleSet } = createAppDependencies(client)): Hono => {
   const app = new Hono();
   app.use('*', cors());
   app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -74,9 +108,7 @@ export const createApp = (client: Anthropic, { grounded, getRuleSet } = createAp
     if (parsed.status === 'invalid') {
       return c.json({ error: parsed.error }, HTTP_BAD_REQUEST);
     }
-    return streamSSE(c, (sse) =>
-      grounded ? pipeGroundedReply(sse, parsed.messages, grounded) : pipeClaudeReply(sse, client, parsed.messages),
-    );
+    return streamSSE(c, (sse) => pipeChatReply(sse, parsed.messages, { client, grounded, verified }));
   });
   app.post('/dose', async (c) => {
     const { status, body } = await respondToDoseRequest(await readJsonBody(c), getRuleSet);

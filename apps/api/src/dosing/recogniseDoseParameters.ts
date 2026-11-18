@@ -13,11 +13,14 @@ export type DoseParameterDependencies = {
 
 type DoseParametersRequest = { requestId: string; messages: ChatMessage[] };
 
-export type PendingDoseParameters = { requestId: string; result: Promise<DoseParametersEvent | null>; abort: () => void };
+export type DoseRecognition = { status: 'failed' } | { status: 'recognised'; event: DoseParametersEvent | null };
+
+export type PendingDoseParameters = { requestId: string; result: Promise<DoseRecognition>; abort: () => void };
 
 export const DOSE_PARAMETERS_GRACE_MS = 5000;
 
 const TIMED_OUT = 'timed_out';
+const FAILED: DoseRecognition = { status: 'failed' };
 
 const logFailure = (requestId: string, error: string): void => {
   console.warn(`Grounded request ${requestId}: dose_parameters=failed error=${error}`);
@@ -27,18 +30,18 @@ const recogniseDoseParameters = async (
   { requestId, messages }: DoseParametersRequest,
   dependencies: DoseParameterDependencies,
   signal: AbortSignal,
-): Promise<DoseParametersEvent | null> => {
+): Promise<DoseRecognition> => {
   try {
     const [output, ruleSet] = await Promise.all([dependencies.extractDoseParameters(messages, signal), dependencies.getRuleSet()]);
     const userTexts = messages.filter(({ role }) => role === 'user').map(({ content }) => content);
     const extraction = parseDoseExtraction(output, userTexts);
-    if (extraction) return matchDoseParameters(ruleSet, extraction);
+    if (extraction) return { status: 'recognised', event: matchDoseParameters(ruleSet, extraction) };
     logFailure(requestId, 'invalid_output');
-    return null;
+    return FAILED;
   } catch (error) {
-    if (signal.aborted || error instanceof Anthropic.APIUserAbortError) return null;
+    if (signal.aborted || error instanceof Anthropic.APIUserAbortError) return FAILED;
     logFailure(requestId, error instanceof Error ? error.name : typeof error);
-    return null;
+    return FAILED;
   }
 };
 
@@ -60,12 +63,17 @@ const settleWithin = async <T>(pending: Promise<T>, milliseconds: number): Promi
   }
 };
 
-export const awaitDoseParameters = async (pending: PendingDoseParameters): Promise<DoseParametersEvent | null> => {
+export const awaitDoseRecognition = async (pending: PendingDoseParameters): Promise<DoseRecognition> => {
   const settled = await settleWithin(pending.result, DOSE_PARAMETERS_GRACE_MS);
   if (settled !== TIMED_OUT) return settled;
   pending.abort();
   logFailure(pending.requestId, 'timeout');
-  return null;
+  return FAILED;
+};
+
+export const awaitDoseParameters = async (pending: PendingDoseParameters): Promise<DoseParametersEvent | null> => {
+  const recognition = await awaitDoseRecognition(pending);
+  return recognition.status === 'recognised' ? recognition.event : null;
 };
 
 export const describeDoseParameters = (event: DoseParametersEvent): string => {

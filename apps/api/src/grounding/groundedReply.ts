@@ -38,14 +38,14 @@ type RequestWithFragments = RequestWithoutSources & {
   doseParameters: PendingDoseParameters;
 };
 
-const buildRetrievalQuery = (messages: ChatMessage[]): string => {
+export const buildRetrievalQuery = (messages: ChatMessage[]): string => {
   const userMessages = messages.filter(({ role }) => role === 'user').map(({ content }) => content);
   const last = userMessages.at(-1) ?? '';
   const previous = userMessages.at(-2);
   return last.length < SHORT_QUESTION_LENGTH && previous ? `${previous}\n${last}` : last;
 };
 
-const toGroundedMessages = (messages: ChatMessage[], fragments: RetrievedFragment[]): Anthropic.Beta.BetaMessageParam[] => {
+export const toGroundedMessages = (messages: ChatMessage[], fragments: RetrievedFragment[]): Anthropic.Beta.BetaMessageParam[] => {
   const history = messages.slice(0, -1);
   const question = messages.at(-1)?.content ?? '';
   return [...history, { role: 'user', content: [...fragments.map(toSearchResultBlock), { type: 'text', text: question }] }];
@@ -79,7 +79,7 @@ const writeGroundedAnswer = async (
   await writeEvent(sse, 'done', { stopReason: answer.stopReason });
 };
 
-const writeNoSourceAnswer = (sse: SSEStreamingApi): Promise<void> =>
+export const writeNoSourceAnswer = (sse: SSEStreamingApi): Promise<void> =>
   writeGroundedAnswer(sse, { text: NO_SOURCE_MESSAGE, cited: [], stopReason: 'no_sources' });
 
 const writeWithheldAnswer = (sse: SSEStreamingApi, cited: RetrievedFragment[]): Promise<void> => {
@@ -134,7 +134,7 @@ const describeUnverifiedNumbers = (segments: AnswerSegment[], fragments: Retriev
   return `in_uncited_blocks=${inUncitedBlocks} absent_from_retrieved=${absentFromRetrieved}`;
 };
 
-const writeAnswerWithoutSources = async (
+export const writeAnswerWithoutSources = async (
   sse: SSEStreamingApi,
   reply: ConversationReply,
   request: RequestWithoutSources,
@@ -206,7 +206,10 @@ const answerFromFragments = async (
   await writeGroundedAnswer(sse, { text, cited, stopReason: message.stop_reason ?? 'end_turn' });
 };
 
-const loadIndex = async (sse: SSEStreamingApi, dependencies: GroundedDependencies): Promise<SourceIndex | null> => {
+export const loadIndex = async (
+  sse: SSEStreamingApi,
+  dependencies: Pick<GroundedDependencies, 'getSourceIndex'>,
+): Promise<SourceIndex | null> => {
   try {
     return await dependencies.getSourceIndex();
   } catch (error) {

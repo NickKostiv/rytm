@@ -4,6 +4,8 @@ export type Decimal = { units: bigint; scale: number };
 
 const NUMBER_TEXT_PATTERN = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/;
 
+const DECIMAL_TEXT_PATTERN = /^(\d+)(?:\.(\d+))?$/;
+
 const powerOfTen = (exponent: number): bigint => BigInt(`1${'0'.repeat(exponent)}`);
 
 const greatestCommonDivisor = (left: bigint, right: bigint): bigint => {
@@ -34,6 +36,13 @@ export const decimalFromNumber = (value: number): Decimal => {
   const units = BigInt(integerDigits + fractionDigits);
   const scale = fractionDigits.length - Number(exponentText);
   return scale >= 0 ? { units, scale } : { units: units * powerOfTen(-scale), scale: 0 };
+};
+
+export const decimalFromText = (text: string): Decimal | null => {
+  const match = DECIMAL_TEXT_PATTERN.exec(text);
+  if (!match) return null;
+  const [, integerDigits = '', fractionDigits = ''] = match;
+  return { units: BigInt(integerDigits + fractionDigits), scale: fractionDigits.length };
 };
 
 export const multiplyDecimals = (left: Decimal, right: Decimal): Decimal => ({
