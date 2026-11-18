@@ -11,6 +11,7 @@ import { chunk, row } from '../retrieval/sourceFixtures.js';
 import { buildSourceIndex, createLazySourceIndex } from '../retrieval/sourceIndex.js';
 import type { SourceIndex } from '../retrieval/sourceIndex.js';
 import { NO_SOURCE_MESSAGE } from './groundedReply.js';
+import { fragmentTitle } from './groundingFragments.js';
 import { OUTSIDE_PROTOCOLS_LABEL, VERIFICATION_FAILED_MESSAGE, VERIFIED_TURN_DEADLINE_MS } from './verifiedReply.js';
 import type { VerifiedDependencies, VerifiedMessage, VerifiedStream } from './verifiedReply.js';
 
@@ -143,6 +144,9 @@ const postChat = async (verified: VerifiedDependencies, question: string): Promi
 
 const names = (events: SseEvent[]): string[] => events.map(({ event }) => event);
 
+const titleOf = (id: string, page: number, headingPath = ['Синтетичний розділ']): string =>
+  fragmentTitle({ chunk: chunk(id, page, '', { headingPath }), row: row(id), score: 0 });
+
 const final = (events: SseEvent[]): SseEvent[] => events.filter(({ event }) => event !== 'progress');
 
 const itemIds = (event: SseEvent | undefined): unknown[] => {
@@ -196,7 +200,11 @@ test('a contradicted sentence withholds the answer; the judge sees fragments the
   assert.ok(!raw.includes('Інфузія підігрітих розчинів,'));
   const answerEvents = final(events);
   assert.deepEqual(names(answerEvents), ['delta', 'citations', 'done']);
-  assert.equal(answerEvents[0]?.data.text, [VERIFICATION_FAILED_MESSAGE, OTHER_FRAGMENT, ITEM_FRAGMENT].join('\n\n'));
+  const itemTopicLine = ITEM_FRAGMENT.split('\n')[0];
+  assert.equal(
+    answerEvents[0]?.data.text,
+    [VERIFICATION_FAILED_MESSAGE, `${titleOf('other', 4)}:\n${OTHER_FRAGMENT}`, `${titleOf('item', 3)}:\n${itemTopicLine}`].join('\n\n'),
+  );
   assert.deepEqual(itemIds(answerEvents[1]), ['other:p4:0', 'item:p3:0']);
   assert.deepEqual(answerEvents[2]?.data, { stopReason: 'withheld' });
 });
@@ -444,22 +452,40 @@ test('calculator precedence on the no-fragment path: a matched rule turns a web-
   assert.deepEqual(final(failed.events).at(-1)?.data, { stopReason: 'no_sources' });
 });
 
-test('a withheld answer quotes at most three fragments', async () => {
+test('a contradicting fragment is quoted first even with no relevant unit; other sections are not; citations list exactly the quotes', async () => {
   const answer = 'Зігрівання.\nОрганізація роботи бригади.\nДокументування виклику.';
   const { events } = await postChat(
     dependencies({
       startStream: () => streamOf(message([mohCited(answer)])),
       judge: async (input, signal) => {
-        const fragmentIds = [...input.matchAll(/<fragment id="(F\d+)"/g)].map(([, id = '']) => id);
-        assert.ok(fragmentIds.length > 3);
-        return judgeOf(['contradicted', fragmentIds], ['not_covered', []], ['not_covered', []])(input, signal);
+        const fillerId = [...input.matchAll(/<fragment id="(F\d+)"[^>]*>\n([^<]*)\n<\/fragment>/g)].find(
+          ([, , content]) => content === 'Організація роботи бригади.',
+        )?.[1];
+        assert.ok(fillerId);
+        return judgeOf(['not_covered', []], ['contradicted', [fillerId]], ['not_covered', []])(input, signal);
       },
     }),
     QUESTION,
   );
   const answerEvents = final(events);
   assert.deepEqual(answerEvents.at(-1)?.data, { stopReason: 'withheld' });
-  assert.equal(itemIds(answerEvents.find(({ event }) => event === 'citations')).length, 3);
+  assert.deepEqual(itemIds(answerEvents.find(({ event }) => event === 'citations')), ['filler:p9:0', 'item:p3:0']);
+  assert.ok(String(answerEvents[0]?.data.text).includes(`${titleOf('filler', 9, [])}:\nОрганізація роботи бригади.`));
+  assert.ok(!String(answerEvents[0]?.data.text).includes('Документування виклику'));
+});
+
+test('fragments holding nothing from the answer or the question still quote the top fragment, never no_sources', async () => {
+  const { events } = await postChat(
+    dependencies({
+      classify: async () => ({ kind: 'medical', retrievalTerms: ['гіпотермія'] }),
+      startStream: () => streamOf(message([mohCited('Синтетикол 7 мг.', 0)])),
+    }),
+    OFF_BASE_QUESTION,
+  );
+  assert.deepEqual(names(final(events)), ['delta', 'citations', 'done']);
+  assert.deepEqual(final(events).at(-1)?.data, { stopReason: 'withheld' });
+  assert.equal(itemIds(final(events)[1]).length, 1);
+  assert.ok(String(final(events)[0]?.data.text).startsWith(VERIFICATION_FAILED_MESSAGE));
 });
 
 test('an empty answer is withheld with quotes when fragments exist and is no_sources without them; the judge is not called', async () => {
@@ -540,6 +566,22 @@ test('owner acceptance case on the real source base: rewrite retrieves 3.4, the 
 test('a model refusal of the answer is an error event', async () => {
   const { events } = await postChat(dependencies({ startStream: () => streamOf(message([], 'refusal')) }), QUESTION);
   assert.deepEqual(names(final(events)), ['error']);
+});
+
+test('an uncited quotation of one fragment gets a code-assigned citation: the answer passes, citations list it, the count is logged', async (t) => {
+  const logged: string[] = [];
+  t.mock.method(console, 'log', (...parts: unknown[]) => void logged.push(parts.map(String).join(' ')));
+  const answer = 'Наберіть 0,3 мл: «Введіть синтетикол (1 мг/мл): а) дорослі (25 кг або більше) 0,3 мг в/м».';
+  const { events } = await postChat(
+    dependencies({ startStream: () => streamOf(message([plain(answer)])), judge: judgeOf(['supported', ['F1']]) }),
+    QUESTION,
+  );
+  const answerEvents = final(events);
+  assert.deepEqual(names(answerEvents), ['delta', 'citations', 'done']);
+  assert.equal(answerEvents[0]?.data.text, answer);
+  assert.deepEqual(itemIds(answerEvents[1]), ['item:p3:0']);
+  assert.deepEqual(answerEvents[2]?.data, { stopReason: 'end_turn' });
+  assert.ok(logged.some((line) => line.includes('assigned_citations=1')));
 });
 
 test('patient age, weight, the answer text and web cited text never reach the server logs', async (t) => {

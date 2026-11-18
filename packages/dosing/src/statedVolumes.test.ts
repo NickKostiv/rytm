@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { normalizeNumberText } from '#numberText';
-import { checkStatedVolumes, maskStatedVolumes, type StatedVolumeCheck, type VolumeSourceUnit } from '#statedVolumes';
+import { checkStatedVolumes as checkWithReasons, maskStatedVolumes, type StatedVolumeCheck, type VolumeSourceUnit } from '#statedVolumes';
 
 const moh = (text: string): VolumeSourceUnit => ({ text, isWeb: false });
 const web = (text: string): VolumeSourceUnit => ({ text, isWeb: true });
 
 const VERIFIED: StatedVolumeCheck = { status: 'verified', isWebBound: false };
 const WEB_BOUND: StatedVolumeCheck = { status: 'verified', isWebBound: true };
-const UNVERIFIED: StatedVolumeCheck = { status: 'unverified' };
+const UNVERIFIED = { status: 'unverified' };
+
+const checkStatedVolumes = (sentence: string, units: VolumeSourceUnit[]) =>
+  checkWithReasons(sentence, units).map((check) => (check.status === 'unverified' ? UNVERIFIED : check));
+
+const reasons = (sentence: string, units: VolumeSourceUnit[]): string[] =>
+  checkWithReasons(sentence, units).flatMap((check) => (check.status === 'unverified' ? [check.reason] : []));
 
 const SYNTHETIC_ITEM = 'Синтетикол (1 мг/мл): дорослі 0,3 мг в/м; діти 0,15 мг в/м.';
 
@@ -116,4 +122,14 @@ test('masking blanks volume tokens only and keeps the text length', () => {
   assert.equal(masked.length, text.length);
   assert.ok(masked.includes('0.3 мг') && masked.includes('1 мг/мл'));
   assert.ok(!/\d/.test(masked.slice(masked.indexOf('—'))));
+});
+
+test('an unverified volume names why, without values', () => {
+  const item = moh(SYNTHETIC_ITEM);
+  assert.deepEqual(reasons('Наберіть 0,3 мл.', []), ['uncited']);
+  assert.deepEqual(reasons('Наберіть 0,7 мл.', [item]), ['verbatim_absent']);
+  assert.deepEqual(reasons('«0,3 мг» — 0,3 мл.', [item]), ['missing_concentration']);
+  assert.deepEqual(reasons('«1 мг/мл» — 0,3 мл.', [item]), ['missing_dose']);
+  assert.deepEqual(reasons('«0,3 мг», «1 мг/мл» — 5 мл/год.', [item]), ['rate_with_dose']);
+  assert.deepEqual(reasons('«0,3 мг», «1 мг/мл» — 0,5 мл.', [item]), ['not_recomputed']);
 });

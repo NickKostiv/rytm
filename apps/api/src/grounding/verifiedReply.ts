@@ -20,6 +20,8 @@ import { buildJudgeInput, parseJudgeVerdict, VERDICTS } from './judgeVerdict.js'
 import type { JudgedSentence } from './judgeVerdict.js';
 import { collectVerifiedAnswer, runDeterministicChecks } from './verifiedAnswer.js';
 import type { VerifiedAnswer, WebSourceItem } from './verifiedAnswer.js';
+import { formatWithheldQuote, selectWithheldQuotes } from './withheldQuotes.js';
+import type { QuoteFragments, WithheldQuote } from './withheldQuotes.js';
 
 export type VerifiedMessage = Pick<Anthropic.Beta.BetaMessage, 'content' | 'stop_reason'> & {
   container: { id: string } | null;
@@ -53,7 +55,7 @@ type Turn = {
 
 type TurnOutcome =
   | { kind: 'answer'; text: string; cited: RetrievedFragment[]; webSources: WebSourceItem[]; stopReason: string; doseEvent: DoseParametersEvent | null }
-  | { kind: 'withheld'; quotes: RetrievedFragment[]; doseEvent: DoseParametersEvent | null }
+  | { kind: 'withheld'; quotes: WithheldQuote[]; doseEvent: DoseParametersEvent | null }
   | { kind: 'no_sources' }
   | { kind: 'conversation'; reply: ClassifiedReply }
   | { kind: 'error'; message: string }
@@ -67,7 +69,6 @@ export const VERIFIED_TURN_DEADLINE_MS = 90_000;
 export const VERIFICATION_FAILED_MESSAGE = 'Відповідь не пройшла перевірку за протоколами МОЗ. Цитати з протоколу:';
 export const OUTSIDE_PROTOCOLS_LABEL = ' (поза протоколами МОЗ)';
 const MAX_PAUSE_RESUMES = 2;
-const MAX_WITHHELD_QUOTES = 3;
 const PAUSE_TURN = 'pause_turn';
 const END_TURN = 'end_turn';
 const REFUSAL = 'refusal';
@@ -111,9 +112,10 @@ const log = (turn: Turn, details: string): void => {
 const logAnswerUsage = (turn: Turn, message: VerifiedMessage, resumes: number): void => {
   const { input_tokens: input, output_tokens: output, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: cacheWrite } = message.usage;
   const searches = message.usage.server_tool_use?.web_search_requests ?? 0;
+  const fetches = message.usage.server_tool_use?.web_fetch_requests ?? 0;
   log(
     turn,
-    `answer resume=${resumes} stop=${message.stop_reason} input=${input} output=${output} cache_read=${cacheRead ?? 0} cache_write=${cacheWrite ?? 0} web_searches=${searches}`,
+    `answer resume=${resumes} stop=${message.stop_reason} input=${input} output=${output} cache_read=${cacheRead ?? 0} cache_write=${cacheWrite ?? 0} web_searches=${searches} web_fetches=${fetches}`,
   );
 };
 
@@ -166,17 +168,20 @@ const noSources = (turn: Turn, reason: string): TurnOutcome => {
 const uniqueFragments = (fragments: RetrievedFragment[]): RetrievedFragment[] =>
   [...new Map(fragments.map((fragment) => [fragment.chunk.id, fragment])).values()];
 
-const withheld = (quoteCandidates: RetrievedFragment[], doseEvent: DoseParametersEvent | null): TurnOutcome => ({
-  kind: 'withheld',
-  quotes: uniqueFragments(quoteCandidates).slice(0, MAX_WITHHELD_QUOTES),
-  doseEvent,
-});
+type QuoteSource = QuoteFragments & { answerText: string };
 
-const failureOutcome = (error: unknown, turn: Turn, onDeadline: TurnOutcome): TurnOutcome => {
+const withheld = (turn: Turn, { answerText, ...fragments }: QuoteSource, doseEvent: DoseParametersEvent | null): TurnOutcome => {
+  const quotes = selectWithheldQuotes(fragments, { answerText, questionText: buildRetrievalQuery(turn.messages) });
+  if (quotes.length === 0) return noSources(turn, 'withheld_without_quotes');
+  log(turn, `withheld quotes=${quotes.length} units=${quotes.reduce((total, { units }) => total + units.length, 0)}`);
+  return { kind: 'withheld', quotes, doseEvent };
+};
+
+const failureOutcome = (error: unknown, turn: Turn, onDeadline: () => TurnOutcome): TurnOutcome => {
   if (turn.signal.aborted && turn.signal.reason !== DEADLINE_EXCEEDED) return ABORTED;
   if (turn.signal.aborted) {
     log(turn, 'deadline exceeded');
-    return onDeadline;
+    return onDeadline();
   }
   return { kind: 'error', message: toUserSafeChatError(error) };
 };
@@ -213,33 +218,34 @@ type FragmentAnswer = { fragments: RetrievedFragment[]; answer: VerifiedAnswer; 
 const verifyFragmentAnswer = async (turn: Turn, dependencies: VerifiedDependencies, context: FragmentAnswer): Promise<TurnOutcome> => {
   const { fragments, answer, stopReason, recognition } = context;
   const doseEvent = recognisedEvent(recognition);
-  const fallbackQuotes = [...answer.citedFragments, ...fragments];
+  const sentences = splitAnswerSentences(answer.text);
+  const judgedFragments = judgeFragments(fragments, sentences, turn.index);
+  const withheldAnswer = (contradicting: RetrievedFragment[] = []): TurnOutcome =>
+    withheld(turn, { contradicting, others: [...answer.citedFragments, ...judgedFragments], answerText: answer.text }, doseEvent);
   if (stopReason !== END_TURN) {
     log(turn, `withheld check=stop_reason stop=${stopReason}`);
-    return withheld(fallbackQuotes, doseEvent);
+    return withheldAnswer();
   }
-  const sentences = splitAnswerSentences(answer.text);
   if (sentences.length === 0) {
     log(turn, 'withheld check=empty_answer');
-    return withheld(fallbackQuotes, doseEvent);
+    return withheldAnswer();
   }
   const checked = runDeterministicChecks(answer, sentences, { hasCalculatorRule: hasCalculatorRule(recognition) });
   if (checked.status === 'failed') {
-    log(turn, `withheld check=${checked.check}`);
-    return withheld(fallbackQuotes, doseEvent);
+    log(turn, `withheld check=${checked.check} reasons=${checked.reasons.join(',')}`);
+    return withheldAnswer();
   }
   await turn.progress.send('verifying');
-  const judgedFragments = judgeFragments(fragments, sentences, turn.index);
   const judged = await judgeSentences(turn, dependencies, { sentences, fragments: judgedFragments });
   if (!judged) {
     log(turn, `withheld check=judge sentences=${sentences.length} fragments=${judgedFragments.length}`);
-    return withheld(fallbackQuotes, doseEvent);
+    return withheldAnswer();
   }
   log(turn, `judge sentences=${sentences.length} fragments=${judgedFragments.length} ${countVerdicts(judged)}`);
   const contradicting = judged.flatMap(({ verdict, fragmentIndexes }) =>
     verdict === 'contradicted' ? fragmentIndexes.flatMap((index) => judgedFragments[index] ?? []) : [],
   );
-  if (judged.some(({ verdict }) => verdict === 'contradicted')) return withheld([...contradicting, ...fallbackQuotes], doseEvent);
+  if (judged.some(({ verdict }) => verdict === 'contradicted')) return withheldAnswer(contradicting);
   const labelledLines = new Set(
     sentences.flatMap(({ line }, index) =>
       judged[index]?.verdict === 'not_covered' || checked.webBoundSentences.has(index) ? [line] : [],
@@ -269,6 +275,7 @@ const answerWithFragments = async (
     const { content, stopReason } = await startAnswer(turn, dependencies, fragments);
     if (stopReason === REFUSAL) return { kind: 'error', message: REFUSAL_MESSAGE };
     const answer = collectVerifiedAnswer(content, fragments);
+    log(turn, `assigned_citations=${answer.assignedCitations}`);
     if (isNoSourceRefusal(answer.text)) return noSources(turn, 'model_refusal');
     if (!answer.hasCitations && !isKnownMedical) {
       log(turn, 'answer has no citations');
@@ -278,7 +285,7 @@ const answerWithFragments = async (
     const recognition = await awaitDoseRecognition(dose);
     return await verifyFragmentAnswer(turn, dependencies, { fragments, answer, stopReason, recognition });
   } catch (error) {
-    return failureOutcome(error, turn, withheld(fragments, null));
+    return failureOutcome(error, turn, () => withheld(turn, { contradicting: [], others: fragments, answerText: '' }, null));
   } finally {
     dose.abort();
   }
@@ -294,16 +301,16 @@ const answerWithoutFragments = async (turn: Turn, dependencies: VerifiedDependen
     if (isNoSourceRefusal(answer.text)) return noSources(turn, 'model_refusal');
     if (stopReason !== END_TURN) return noSources(turn, `stop_reason stop=${stopReason}`);
     const recognition = await awaitDoseRecognition(dose);
-    if (turn.signal.aborted) return failureOutcome(new Anthropic.APIUserAbortError(), turn, NO_SOURCES);
+    if (turn.signal.aborted) return failureOutcome(new Anthropic.APIUserAbortError(), turn, () => NO_SOURCES);
     const sentences = splitAnswerSentences(answer.text);
     if (sentences.length === 0) return noSources(turn, 'empty_answer');
     const checked = runDeterministicChecks(answer, sentences, { hasCalculatorRule: hasCalculatorRule(recognition) });
-    if (checked.status === 'failed') return noSources(turn, `check=${checked.check}`);
+    if (checked.status === 'failed') return noSources(turn, `check=${checked.check} reasons=${checked.reasons.join(',')}`);
     const allLines = new Set(sentences.map(({ line }) => line));
     const text = appendToLines(answer.text, allLines, OUTSIDE_PROTOCOLS_LABEL);
     return { kind: 'answer', text, cited: [], webSources: answer.webSources, stopReason: END_TURN, doseEvent: null };
   } catch (error) {
-    return failureOutcome(error, turn, NO_SOURCES);
+    return failureOutcome(error, turn, () => NO_SOURCES);
   } finally {
     dose.abort();
   }
@@ -321,7 +328,7 @@ const resolveTurn = async (turn: Turn, dependencies: VerifiedDependencies): Prom
     if (researched.length > 0) return await answerWithFragments(turn, dependencies, { fragments: researched, isKnownMedical: true });
     return await answerWithoutFragments(turn, dependencies);
   } catch (error) {
-    return failureOutcome(error, turn, NO_SOURCES);
+    return failureOutcome(error, turn, () => NO_SOURCES);
   }
 };
 
@@ -348,8 +355,8 @@ const writeOutcome = async (sse: SSEStreamingApi, turn: Turn, outcome: TurnOutco
   }
   if (outcome.kind === 'withheld') {
     if (outcome.quotes.length > 0) await writeDoseEvent(sse, turn, outcome.doseEvent);
-    await writeEvent(sse, 'delta', { text: [VERIFICATION_FAILED_MESSAGE, ...outcome.quotes.map(({ chunk }) => chunk.content)].join('\n\n') });
-    await writeEvent(sse, 'citations', { items: outcome.quotes.map(toCitationItem) });
+    await writeEvent(sse, 'delta', { text: [VERIFICATION_FAILED_MESSAGE, ...outcome.quotes.map(formatWithheldQuote)].join('\n\n') });
+    await writeEvent(sse, 'citations', { items: outcome.quotes.map(({ fragment }) => toCitationItem(fragment)) });
     await writeEvent(sse, 'done', { stopReason: 'withheld' });
     return;
   }

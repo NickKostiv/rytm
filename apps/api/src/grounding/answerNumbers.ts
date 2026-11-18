@@ -10,8 +10,8 @@ const NON_ASCII_NUMERAL = /(?![0-9])\p{N}/gu;
 const SIMPLE_DECIMAL = /^\d+\.\d+$/;
 const RATIO_SEPARATOR = ':';
 const UNIT_AFTER_NUMBER =
-  /^\s*(?:-\s*\d+(?:\.\d+)?\s*)?(мкг|mcg|µg|μg|мг|mg|нг|ng|гр|г|g|од|мо|ме|iu|ммоль|mmol|%)((?:\s*\/\s*(?:кг|kg|хв|min|год|hr|h|добу|day|мл|ml))*)(?![\p{L}\d])/iu;
-const SPACES = /\s+/g;
+  /^\s*(?:-\s*\d+(?:\.\d+)?\s*)?(мкг|mcg|µg|μg|мг|mg|нг|ng|гр|г|g|од|мо|ме|iu|ммоль|mmol|%)((?:\s*\/\s*(?:1\s*)?(?:кг|kg|хв|min|год|hour|hr|h|добу|day|мл|ml)|\s+(?:на\s+(?:кожний|кожен)|на|per|for\s+each|each|a|за|кожний|кожен)\s+(?:1\s+)?(?:кілограм(?:и|ів)?|kilograms?|кг|kg|добу|day|хв|min|год|hour|h))*)(?![\p{L}\d])/iu;
+const UNIT_QUALIFIER = /(?<!\p{L})(?:кілограм(?:и|ів)?|kilograms?|кг|kg|хв|min|год|hour|hr|h|добу|day|мл|ml)(?!\p{L})/giu;
 const UNIT_SPELLINGS: ReadonlyMap<string, string> = new Map([
   ['mcg', 'мкг'],
   ['µg', 'мкг'],
@@ -24,8 +24,14 @@ const UNIT_SPELLINGS: ReadonlyMap<string, string> = new Map([
   ['iu', 'мо'],
   ['mmol', 'ммоль'],
   ['kg', 'кг'],
+  ['kilogram', 'кг'],
+  ['kilograms', 'кг'],
+  ['кілограм', 'кг'],
+  ['кілограми', 'кг'],
+  ['кілограмів', 'кг'],
   ['min', 'хв'],
   ['hr', 'год'],
+  ['hour', 'год'],
   ['h', 'год'],
   ['day', 'добу'],
   ['ml', 'мл'],
@@ -46,10 +52,15 @@ const tokenSpans = (text: string, pattern: RegExp): TokenSpan[] =>
 
 const canonicalUnit = (unit: string): string => unit.toLowerCase().split('/').map((part) => UNIT_SPELLINGS.get(part) ?? part).join('/');
 
-const numberWithUnit = (text: string, span: TokenSpan): string => {
+const unitAfterNumber = (text: string, span: TokenSpan): string | null => {
   const match = UNIT_AFTER_NUMBER.exec(text.slice(span.end));
+  return match ? canonicalUnit([match[1] ?? '', ...((match[2] ?? '').match(UNIT_QUALIFIER) ?? [])].join('/')) : null;
+};
+
+const numberWithUnit = (text: string, span: TokenSpan): string => {
+  const unit = unitAfterNumber(text, span);
   const number = canonicalNumber(span.token);
-  return match ? `${number} ${canonicalUnit(`${match[1] ?? ''}${match[2] ?? ''}`.replace(SPACES, ''))}` : number;
+  return unit ? `${number} ${unit}` : number;
 };
 
 const sourceNumbersWithUnits = (sourceText: string): string[] => {
@@ -67,12 +78,17 @@ const segmentBounds = (segments: AnswerSegment[]): { start: number; end: number;
     return [...bounds, { start, end: start + text.length, sourceTexts }];
   }, []);
 
-const isTokenVerified = (
-  span: TokenSpan,
-  bounds: ReturnType<typeof segmentBounds>,
-  isFoundIn: (sourceTexts: string[]) => boolean,
-): boolean => {
-  const overlapping = bounds.filter(({ start, end }) => span.start < end && span.end > start);
+type SegmentBound = ReturnType<typeof segmentBounds>[number];
+
+export type UnverifiedNumberReason = 'uncited' | 'unit_mismatch' | 'absent';
+
+export type UnverifiedNumber = { token: string; reason: UnverifiedNumberReason };
+
+const overlappingBounds = (span: TokenSpan, bounds: SegmentBound[]): SegmentBound[] =>
+  bounds.filter(({ start, end }) => span.start < end && span.end > start);
+
+const isTokenVerified = (span: TokenSpan, bounds: SegmentBound[], isFoundIn: (sourceTexts: string[]) => boolean): boolean => {
+  const overlapping = overlappingBounds(span, bounds);
   if (overlapping.some(({ sourceTexts }) => sourceTexts.length === 0)) return false;
   return isFoundIn(overlapping.flatMap(({ sourceTexts }) => sourceTexts));
 };
@@ -82,7 +98,10 @@ const normalizeSegments = (segments: AnswerSegment[]): AnswerSegment[] =>
 
 const maskOrderedListMarkers = (text: string): string => text.replace(ORDERED_LIST_MARKER, (marker) => ' '.repeat(marker.length));
 
-const findUnverified = (segments: AnswerSegment[], { mask, keys }: { mask: (text: string) => string; keys: NumberKeys }): string[] => {
+const findUnverifiedSpans = (
+  segments: AnswerSegment[],
+  { mask, keys }: { mask: (text: string) => string; keys: NumberKeys },
+): { spans: TokenSpan[]; bounds: SegmentBound[] } => {
   const normalized = normalizeSegments(segments);
   const bounds = segmentBounds(normalized);
   const masked = mask(normalized.map(({ text }) => text).join(''));
@@ -92,11 +111,31 @@ const findUnverified = (segments: AnswerSegment[], { mask, keys }: { mask: (text
   const unverifiedNumerals = tokenSpans(masked, NON_ASCII_NUMERAL).filter(
     (span) => !isTokenVerified(span, bounds, (texts) => texts.some((text) => text.includes(span.token))),
   );
-  return [...unverifiedNumbers, ...unverifiedNumerals].map(({ token }) => canonicalNumber(token));
+  return { spans: [...unverifiedNumbers, ...unverifiedNumerals], bounds };
+};
+
+const unverifiedReason = (span: TokenSpan, bounds: SegmentBound[]): UnverifiedNumberReason => {
+  const overlapping = overlappingBounds(span, bounds);
+  if (overlapping.some(({ sourceTexts }) => sourceTexts.length === 0)) return 'uncited';
+  const sourceTexts = overlapping.flatMap(({ sourceTexts: texts }) => texts);
+  return sourceTexts.flatMap(sourceNumbers).includes(canonicalNumber(span.token)) ? 'unit_mismatch' : 'absent';
 };
 
 export const findUnverifiedNumbers = (segments: AnswerSegment[]): string[] =>
-  findUnverified(segments, { mask: maskOrderedListMarkers, keys: PLAIN_NUMBER_KEYS });
+  findUnverifiedSpans(segments, { mask: maskOrderedListMarkers, keys: PLAIN_NUMBER_KEYS }).spans.map(({ token }) => canonicalNumber(token));
 
-export const findUnverifiedNumbersByUnit = (segments: AnswerSegment[]): string[] =>
-  findUnverified(segments, { mask: (text) => maskStatedVolumes(maskOrderedListMarkers(text)), keys: UNIT_NUMBER_KEYS });
+export const findUnverifiedNumbersByUnit = (segments: AnswerSegment[]): UnverifiedNumber[] => {
+  const { spans, bounds } = findUnverifiedSpans(segments, {
+    mask: (text) => maskStatedVolumes(maskOrderedListMarkers(text)),
+    keys: UNIT_NUMBER_KEYS,
+  });
+  return spans.map((span) => ({ token: canonicalNumber(span.token), reason: unverifiedReason(span, bounds) }));
+};
+
+export const findNumbersWithUnits = (text: string): string[] => {
+  const normalized = normalizeNumberText(text);
+  return tokenSpans(normalized, NUMBER).flatMap((span) => {
+    const unit = unitAfterNumber(normalized, span);
+    return unit ? [`${canonicalNumber(span.token)} ${unit}`] : [];
+  });
+};

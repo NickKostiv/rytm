@@ -48,6 +48,16 @@ const WEB_SEARCH_TOOL: Anthropic.Beta.BetaWebSearchTool20260209 = {
   allowed_callers: ['direct'],
 };
 
+const WEB_FETCH_TOOL: Anthropic.Beta.BetaWebFetchTool20260209 = {
+  type: 'web_fetch_20260209',
+  name: 'web_fetch',
+  max_uses: 2,
+  max_content_tokens: 15000,
+  blocked_domains: ['moz.gov.ua'],
+  allowed_callers: ['direct'],
+  citations: { enabled: true },
+};
+
 export type ConversationReply = { kind: 'medical' } | { kind: 'conversation'; text: string };
 
 export type ClassifiedReply = { kind: 'medical'; retrievalTerms: string[] } | { kind: 'conversation'; text: string };
@@ -91,7 +101,7 @@ export const startVerifiedChatStream = (
   { messages, containerId, onServerToolUse }: VerifiedStreamRequest,
 ): BetaMessageStream => {
   const container = containerId === null ? {} : { container: containerId };
-  const stream = streamWithSystemPrompt(client, { systemPrompt: VERIFIED_SYSTEM_PROMPT, messages, tools: [WEB_SEARCH_TOOL], ...container });
+  const stream = streamWithSystemPrompt(client, { systemPrompt: VERIFIED_SYSTEM_PROMPT, messages, tools: [WEB_SEARCH_TOOL, WEB_FETCH_TOOL], ...container });
   stream.on('streamEvent', (event) => {
     if (event.type === 'content_block_start' && event.content_block.type === 'server_tool_use') onServerToolUse();
   });

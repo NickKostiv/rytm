@@ -19,7 +19,7 @@ export type { LoadedRule, RuleSet } from '#loadRuleSet';
 export { toDisplayDecimal } from '#decimal';
 export { normalizeNumberText } from '#numberText';
 export { checkStatedVolumes, maskStatedVolumes } from '#statedVolumes';
-export type { StatedVolumeCheck, VolumeSourceUnit } from '#statedVolumes';
+export type { StatedVolumeCheck, UnverifiedVolumeReason, VolumeSourceUnit } from '#statedVolumes';
 export {
   MOH_DOSING_RULES,
   MOH_OFFLINE_SOURCE_VALIDITIES,

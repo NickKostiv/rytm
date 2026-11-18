@@ -3,7 +3,9 @@ import { normalizeNumberText } from '#numberText';
 
 export type VolumeSourceUnit = { text: string; isWeb: boolean };
 
-export type StatedVolumeCheck = { status: 'verified'; isWebBound: boolean } | { status: 'unverified' };
+export type UnverifiedVolumeReason = 'uncited' | 'verbatim_absent' | 'rate_with_dose' | 'missing_dose' | 'missing_concentration' | 'not_recomputed';
+
+export type StatedVolumeCheck = { status: 'verified'; isWebBound: boolean } | { status: 'unverified'; reason: UnverifiedVolumeReason };
 
 type Amount = { low: Decimal; high: Decimal | null };
 
@@ -12,6 +14,8 @@ type VolumeToken = { amount: Amount; suffix: string; key: string; start: number;
 type DoseToken = { amountMg: Amount; isPerKg: boolean; key: string };
 
 type ConcentrationToken = { amountMg: Decimal; volumeMl: Decimal; key: string };
+
+type SentenceTokens = { doses: DoseToken[]; concentrations: ConcentrationToken[] };
 
 const NUMBER = String.raw`\d+(?:\.\d+)?`;
 const RANGE = String.raw`(${NUMBER})(?:\s*-\s*(${NUMBER}))?`;
@@ -128,27 +132,28 @@ const isRecomputed = (volume: VolumeToken, dose: DoseToken, concentrationToken: 
   return isLowEqual && volumeOf(dose.amountMg.high, concentrationToken) === decimalToText(volume.amount.high);
 };
 
-const supportingUnits = (
-  volume: VolumeToken,
-  sentence: { doses: DoseToken[]; concentrations: ConcentrationToken[] },
-  units: ParsedUnit[],
-): ParsedUnit[] => {
-  if (sentence.doses.length === 0 && sentence.concentrations.length === 0) return units.filter(({ volumeKeys }) => volumeKeys.has(volume.key));
-  const isRecomputable = volume.suffix === '' || volume.suffix === PER_KG_SUFFIX;
-  if (!isRecomputable || sentence.doses.length === 0 || sentence.concentrations.length === 0) return [];
-  return units.filter((unit) =>
-    sentence.doses.some(
-      (dose) =>
-        unit.doseKeys.has(dose.key) &&
-        sentence.concentrations.some(
-          (concentrationToken) => unit.concentrationKeys.has(concentrationToken.key) && isRecomputed(volume, dose, concentrationToken),
-        ),
-    ),
+const isRecomputedByUnit = (volume: VolumeToken, sentence: SentenceTokens, unit: ParsedUnit): boolean =>
+  sentence.doses.some(
+    (dose) =>
+      unit.doseKeys.has(dose.key) &&
+      sentence.concentrations.some(
+        (concentrationToken) => unit.concentrationKeys.has(concentrationToken.key) && isRecomputed(volume, dose, concentrationToken),
+      ),
   );
-};
 
-const toCheck = (supporting: ParsedUnit[]): StatedVolumeCheck =>
-  supporting.length === 0 ? { status: 'unverified' } : { status: 'verified', isWebBound: supporting.every(({ isWeb }) => isWeb) };
+const toCheck = (supporting: ParsedUnit[], reason: UnverifiedVolumeReason): StatedVolumeCheck =>
+  supporting.length === 0 ? { status: 'unverified', reason } : { status: 'verified', isWebBound: supporting.every(({ isWeb }) => isWeb) };
+
+const checkVolume = (volume: VolumeToken, sentence: SentenceTokens, units: ParsedUnit[]): StatedVolumeCheck => {
+  if (units.length === 0) return { status: 'unverified', reason: 'uncited' };
+  const hasDose = sentence.doses.length > 0;
+  const hasConcentration = sentence.concentrations.length > 0;
+  if (!hasDose && !hasConcentration) return toCheck(units.filter(({ volumeKeys }) => volumeKeys.has(volume.key)), 'verbatim_absent');
+  if (volume.suffix !== '' && volume.suffix !== PER_KG_SUFFIX) return { status: 'unverified', reason: 'rate_with_dose' };
+  if (!hasDose) return { status: 'unverified', reason: 'missing_dose' };
+  if (!hasConcentration) return { status: 'unverified', reason: 'missing_concentration' };
+  return toCheck(units.filter((unit) => isRecomputedByUnit(volume, sentence, unit)), 'not_recomputed');
+};
 
 export const checkStatedVolumes = (sentence: string, sourceUnits: VolumeSourceUnit[]): StatedVolumeCheck[] => {
   const normalized = normalizeNumberText(sentence);
@@ -156,7 +161,7 @@ export const checkStatedVolumes = (sentence: string, sourceUnits: VolumeSourceUn
   if (volumes.length === 0) return [];
   const tokens = { doses: findDoses(normalized), concentrations: findConcentrations(normalized) };
   const units = sourceUnits.map(parseUnit);
-  return volumes.map((volume) => toCheck(supportingUnits(volume, tokens, units)));
+  return volumes.map((volume) => checkVolume(volume, tokens, units));
 };
 
 export const maskStatedVolumes = (normalizedText: string): string =>

@@ -60,7 +60,8 @@ test('a block with digits and no citation is rejected even if another block cite
   assert.deepEqual(unverified, ['0.15']);
 });
 
-const checkByUnit = (answer: string, sourceTexts: string[]): string[] => findUnverifiedNumbersByUnit([{ text: answer, sourceTexts }]);
+const checkByUnit = (answer: string, sourceTexts: string[]): string[] =>
+  findUnverifiedNumbersByUnit([{ text: answer, sourceTexts }]).map(({ token }) => token);
 
 test('by unit: a number with a dose unit needs the same number with the same unit, spellings normalised and magnitudes never converted', () => {
   assert.deepEqual(checkByUnit('Синтетикол «10 г».', ['синтетикол 10 мг (5 мг/мл)']), ['10']);
@@ -89,4 +90,39 @@ test('by unit: numbers without a recognised unit keep the plain rule, and volume
 
 test('grounded rule is unchanged: a number passes by value whatever its unit', () => {
   assert.deepEqual(check('Ввести 0,15 г.'), []);
+});
+
+test('by unit: each unverified number names why, uncited, unit_mismatch or absent', () => {
+  assert.deepEqual(
+    findUnverifiedNumbersByUnit([
+      { text: 'Без цитати 5 мг. ', sourceTexts: [] },
+      { text: 'Цитата «10 г», «7 мг».', sourceTexts: ['синтетикол 10 мг'] },
+    ]).map(({ reason }) => reason),
+    ['uncited', 'unit_mismatch', 'absent'],
+  );
+});
+
+test('by unit: word qualifiers per kg, на кг, на 1 кг, за добу and per day are the slash suffix on both sides', () => {
+  const byUnit = (answer: string, source: string) => findUnverifiedNumbersByUnit([{ text: answer, sourceTexts: [source] }]);
+  assert.deepEqual(byUnit('Дітям 1 мг в/в.', 'children 1 mg per kg IV'), [{ token: '1', reason: 'unit_mismatch' }]);
+  assert.deepEqual(byUnit('Дітям 1 мг в/в.', 'дітям 1 мг на кг в/в'), [{ token: '1', reason: 'unit_mismatch' }]);
+  assert.deepEqual(byUnit('Дітям 1 мг/кг в/в.', 'children 1 mg per kg IV'), []);
+  assert.deepEqual(byUnit('Дітям 1 мг на кг в/в.', 'дітям 1 мг/1 кг в/в'), []);
+  assert.deepEqual(byUnit('Дітям 1 мг на 1 кг маси тіла.', 'дітям 1 мг/кг'), []);
+  assert.deepEqual(byUnit('Не більше 4 г/добу.', 'maximum 4 g per day'), []);
+  assert.deepEqual(byUnit('Не більше 4 г за добу.', 'maximum 4 g per day'), []);
+  assert.deepEqual(byUnit('Не більше 4 г.', 'maximum 4 g per day'), [{ token: '4', reason: 'unit_mismatch' }]);
+});
+
+test('grounded rule is unchanged by word qualifiers: a number passes by value', () => {
+  assert.deepEqual(findUnverifiedNumbers([{ text: 'Дітям 1 мг в/в.', sourceTexts: ['children 1 mg per kg IV'] }]), []);
+});
+
+test('by unit: full-word qualifiers per kilogram, for each kg, на кілограм, на кожен кг, кожний кг count as /кг', () => {
+  const byUnit = (answer: string, source: string) => findUnverifiedNumbersByUnit([{ text: answer, sourceTexts: [source] }]);
+  assert.deepEqual(byUnit('Дітям 1 мг в/в.', '1 mg per kilogram IV'), [{ token: '1', reason: 'unit_mismatch' }]);
+  ['1 mg per kilogram', '1 mg for each kg', '1 мг на кілограм', '1 мг на кілограми', '1 мг на кожен кг', '1 мг кожний кг'].forEach((source) =>
+    assert.deepEqual(byUnit('Дітям 1 мг/кг в/в.', source), [], source),
+  );
+  assert.deepEqual(byUnit('Дітям 1 мг/кг в/в.', '1 mg for each patient'), [{ token: '1', reason: 'unit_mismatch' }]);
 });
