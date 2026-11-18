@@ -64,7 +64,6 @@ export const PROGRESS_STAGES = ['retrieving', 'answering', 'searching_web', 'ver
 export const EXAMPLE_QUESTIONS = [
   'Анафілаксія: алгоритм допомоги',
   'Гіпоглікемія: алгоритм допомоги',
-  'Судоми в дитини: що вводити?',
 ] as const;
 
 export const COPY = {

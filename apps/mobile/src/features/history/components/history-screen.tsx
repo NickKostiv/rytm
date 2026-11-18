@@ -15,6 +15,7 @@ import {
   COPY,
   HEADER_MAX_FONT_SCALE,
   PILL_RADIUS,
+  TABLE_RADIUS,
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
 import { useChatGutter } from '@/features/chat/use-chat-gutter';
@@ -297,6 +298,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: CHAT_LINK_PADDING_HORIZONTAL,
     marginRight: Spacing.two,
+    borderRadius: TABLE_RADIUS,
   },
   banner: {
     paddingTop: Spacing.three,

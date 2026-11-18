@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { BORDER_WIDTH, TOUCH_TARGET_SIZE } from '@/features/chat/constants';
+import { BORDER_WIDTH, TABLE_RADIUS, TOUCH_TARGET_SIZE } from '@/features/chat/constants';
 import {
   CONVERSATION_ROW_MIN_HEIGHT,
   CONVERSATION_ROW_PADDING_HORIZONTAL,
@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
   openArea: {
     flex: 1,
     paddingVertical: ROW_TEXT_PADDING_VERTICAL,
+    borderRadius: TABLE_RADIUS,
   },
   title: {
     fontWeight: 600,
@@ -95,6 +96,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     width: TOUCH_TARGET_SIZE,
     height: TOUCH_TARGET_SIZE,
+    borderRadius: TABLE_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
   },

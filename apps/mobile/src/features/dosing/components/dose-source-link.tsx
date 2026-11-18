@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { BORDER_WIDTH, Spacing, TOUCH_TARGET_SIZE } from '@/constants/theme';
+import { TABLE_RADIUS } from '@/features/chat/constants';
 import { DOSE_RESULT_COPY } from '@/features/dosing/constants';
 import type { DoseResult } from '@/features/dosing/types';
 import {
@@ -88,6 +89,7 @@ const styles = StyleSheet.create({
   item: {
     minHeight: TOUCH_TARGET_SIZE,
     paddingVertical: SOURCE_ITEM_PADDING_VERTICAL,
+    borderRadius: TABLE_RADIUS,
   },
   metaRow: {
     flexDirection: 'row',

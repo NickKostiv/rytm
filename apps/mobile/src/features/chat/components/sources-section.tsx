@@ -8,6 +8,7 @@ import {
   SOURCE_CHIP_PADDING_HORIZONTAL,
   SOURCE_CHIP_RADIUS,
   SOURCE_ITEM_PADDING_VERTICAL,
+  TABLE_RADIUS,
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
 import type { AnswerSource, WebSource } from '@/features/chat/types';
@@ -166,6 +167,7 @@ const styles = StyleSheet.create({
   item: {
     minHeight: TOUCH_TARGET_SIZE,
     paddingVertical: SOURCE_ITEM_PADDING_VERTICAL,
+    borderRadius: TABLE_RADIUS,
   },
   title: {
     fontWeight: 600,

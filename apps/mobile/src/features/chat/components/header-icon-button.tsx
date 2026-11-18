@@ -41,5 +41,6 @@ const styles = StyleSheet.create({
     height: TOUCH_TARGET_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: TOUCH_TARGET_SIZE / 2,
   },
 });
