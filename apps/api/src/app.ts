@@ -8,7 +8,7 @@ import { parseChatRequest } from './chatRequest.js';
 import type { ChatMessage } from './chatRequest.js';
 import { REFUSAL_MESSAGE, toUserSafeChatError } from './chatErrorMessage.js';
 import { writeEvent } from './chatSse.js';
-import { startClaudeChatStream, startGroundedChatStream } from './claudeChatStream.js';
+import { createConversationReply, startClaudeChatStream, startGroundedChatStream } from './claudeChatStream.js';
 import { pipeGroundedReply } from './grounding/groundedReply.js';
 import type { GroundedDependencies } from './grounding/groundedReply.js';
 import { createLazySourceIndex } from './retrieval/sourceIndex.js';
@@ -47,7 +47,11 @@ const pipeClaudeReply = async (sse: SSEStreamingApi, client: Anthropic, messages
 
 const createGroundedDependencies = (client: Anthropic): GroundedDependencies | null =>
   process.env.GROUNDED_MODE === '1'
-    ? { getSourceIndex: createLazySourceIndex(), startStream: (messages) => startGroundedChatStream(client, messages) }
+    ? {
+        getSourceIndex: createLazySourceIndex(),
+        startStream: (messages) => startGroundedChatStream(client, messages),
+        replyWithoutSources: (messages, signal) => createConversationReply(client, messages, signal),
+      }
     : null;
 
 export const createApp = (client: Anthropic, grounded = createGroundedDependencies(client)): Hono => {

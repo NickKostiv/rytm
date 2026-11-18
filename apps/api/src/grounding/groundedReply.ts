@@ -4,8 +4,8 @@ import type { SSEStreamingApi } from 'hono/streaming';
 import { REFUSAL_MESSAGE, toUserSafeChatError } from '../chatErrorMessage.js';
 import type { ChatMessage } from '../chatRequest.js';
 import { writeEvent } from '../chatSse.js';
+import type { ConversationReply } from '../claudeChatStream.js';
 import type { RetrievedFragment, SourceIndex } from '../retrieval/sourceIndex.js';
-import { parseAnswerFlag } from './answerFlag.js';
 import { findUnverifiedNumbers } from './answerNumbers.js';
 import type { AnswerSegment } from './answerNumbers.js';
 import { toCitationItem, toSearchResultBlock } from './groundingFragments.js';
@@ -19,13 +19,17 @@ export type GroundedStream = { abort: () => void; finalMessage: () => Promise<Gr
 export type GroundedDependencies = {
   getSourceIndex: () => Promise<SourceIndex>;
   startStream: (messages: Anthropic.Beta.BetaMessageParam[]) => GroundedStream;
+  replyWithoutSources: (messages: ChatMessage[], signal: AbortSignal) => Promise<ConversationReply>;
 };
 
-export const NO_SOURCE_MESSAGE = 'відповіді немає в базі джерел';
-export const WITHHELD_EXPLANATION = 'Відповідь приховано: числа не підтверджені цитованими джерелами';
+export const NO_SOURCE_MESSAGE = 'Цього немає в базі протоколів МОЗ';
+export const WITHHELD_MESSAGE = 'Відповідь приховано: числа не підтверджені цитованими джерелами';
 const SOURCE_BASE_UNAVAILABLE_MESSAGE = 'База джерел тимчасово недоступна. Спробуйте ще раз.';
 const REFUSAL_STOP_REASON = 'refusal';
+const CONVERSATION_STOP_REASON = 'conversation';
 const SHORT_QUESTION_LENGTH = 40;
+
+type RequestWithoutSources = { requestId: string; messages: ChatMessage[]; index: SourceIndex };
 
 const buildRetrievalQuery = (messages: ChatMessage[]): string => {
   const userMessages = messages.filter(({ role }) => role === 'user').map(({ content }) => content);
@@ -61,23 +65,20 @@ const collectAnswer = (content: Anthropic.Beta.BetaContentBlock[], fragments: Re
 
 const writeGroundedAnswer = async (
   sse: SSEStreamingApi,
-  answer: { level: string; explanation: string; text: string; cited: RetrievedFragment[]; stopReason: string },
+  answer: { text: string; cited: RetrievedFragment[]; stopReason: string },
 ): Promise<void> => {
-  await writeEvent(sse, 'flag', { level: answer.level, explanation: answer.explanation });
   if (answer.text) await writeEvent(sse, 'delta', { text: answer.text });
   await writeEvent(sse, 'citations', { items: answer.cited.map(toCitationItem) });
   await writeEvent(sse, 'done', { stopReason: answer.stopReason });
 };
 
 const writeNoSourceAnswer = (sse: SSEStreamingApi): Promise<void> =>
-  writeGroundedAnswer(sse, { level: 'RED', explanation: NO_SOURCE_MESSAGE, text: NO_SOURCE_MESSAGE, cited: [], stopReason: 'no_sources' });
+  writeGroundedAnswer(sse, { text: NO_SOURCE_MESSAGE, cited: [], stopReason: 'no_sources' });
 
 const writeWithheldAnswer = (sse: SSEStreamingApi, cited: RetrievedFragment[]): Promise<void> => {
   const tables = cited.filter(({ chunk }) => chunk.type === 'table');
   return writeGroundedAnswer(sse, {
-    level: 'RED',
-    explanation: WITHHELD_EXPLANATION,
-    text: tables.length > 0 ? tables.map(({ chunk }) => chunk.content).join('\n\n') : WITHHELD_EXPLANATION,
+    text: [WITHHELD_MESSAGE, ...tables.map(({ chunk }) => chunk.content)].join('\n\n'),
     cited: tables,
     stopReason: 'withheld',
   });
@@ -92,6 +93,58 @@ const readFinalMessage = async (sse: SSEStreamingApi, stream: GroundedStream): P
     await writeEvent(sse, 'error', { message: toUserSafeChatError(error) });
     return null;
   }
+};
+
+const readConversationReply = async (
+  sse: SSEStreamingApi,
+  messages: ChatMessage[],
+  dependencies: GroundedDependencies,
+): Promise<ConversationReply | null> => {
+  if (sse.aborted) return null;
+  const controller = new AbortController();
+  sse.onAbort(() => controller.abort());
+  try {
+    const reply = await dependencies.replyWithoutSources(messages, controller.signal);
+    return sse.aborted ? null : reply;
+  } catch (error) {
+    if (error instanceof Anthropic.APIUserAbortError) return null;
+    await writeEvent(sse, 'error', { message: toUserSafeChatError(error) });
+    return null;
+  }
+};
+
+const describeMedicalContent = (text: string, index: SourceIndex): string | null => {
+  const numbers = findUnverifiedNumbers([{ text, sourceTexts: [] }]).length;
+  if (numbers > 0) return `numbers=${numbers}`;
+  const fragments = index.search(text).length;
+  return fragments > 0 ? `fragments=${fragments}` : null;
+};
+
+const writeAnswerWithoutSources = async (
+  sse: SSEStreamingApi,
+  reply: ConversationReply,
+  request: RequestWithoutSources,
+): Promise<void> => {
+  if (reply.kind === 'medical') {
+    await writeNoSourceAnswer(sse);
+    return;
+  }
+  const medicalContent = describeMedicalContent(reply.text, request.index);
+  if (medicalContent) {
+    console.warn(`Grounded request ${request.requestId}: conversation reply replaced by no-source answer, ${medicalContent}`);
+    await writeNoSourceAnswer(sse);
+    return;
+  }
+  await writeGroundedAnswer(sse, { text: reply.text, cited: [], stopReason: CONVERSATION_STOP_REASON });
+};
+
+const answerWithoutSources = async (
+  sse: SSEStreamingApi,
+  request: RequestWithoutSources,
+  dependencies: GroundedDependencies,
+): Promise<void> => {
+  const reply = await readConversationReply(sse, request.messages, dependencies);
+  if (reply) await writeAnswerWithoutSources(sse, reply, request);
 };
 
 const loadIndex = async (sse: SSEStreamingApi, dependencies: GroundedDependencies): Promise<SourceIndex | null> => {
@@ -113,13 +166,14 @@ export const pipeGroundedReply = async (
   const index = await loadIndex(sse, dependencies);
   if (!index) return;
   const fragments = index.search(buildRetrievalQuery(messages));
+  if (sse.aborted) return;
+  const requestWithoutSources = { requestId, messages, index };
   if (fragments.length === 0) {
     console.log(`Grounded request ${requestId}: no fragment above threshold`);
-    await writeNoSourceAnswer(sse);
+    await answerWithoutSources(sse, requestWithoutSources, dependencies);
     return;
   }
 
-  if (sse.aborted) return;
   const message = await readFinalMessage(sse, dependencies.startStream(toGroundedMessages(messages, fragments)));
   if (!message) return;
   const { input_tokens: input, cache_read_input_tokens: cacheRead, cache_creation_input_tokens: cacheWrite } = message.usage;
@@ -132,15 +186,14 @@ export const pipeGroundedReply = async (
   const { text, cited, segments } = collectAnswer(message.content, fragments);
   if (cited.length === 0) {
     console.log(`Grounded request ${requestId}: answer has no citations`);
-    await writeNoSourceAnswer(sse);
+    await answerWithoutSources(sse, requestWithoutSources, dependencies);
     return;
   }
-  const { level, explanation, body } = parseAnswerFlag(text);
   const unverified = findUnverifiedNumbers(segments);
   if (unverified.length > 0) {
     console.warn(`Grounded request ${requestId}: answer withheld, unverified numbers=${unverified.length}, citations=${cited.length}`);
     await writeWithheldAnswer(sse, cited);
     return;
   }
-  await writeGroundedAnswer(sse, { level, explanation, text: body, cited, stopReason: message.stop_reason ?? 'end_turn' });
+  await writeGroundedAnswer(sse, { text, cited, stopReason: message.stop_reason ?? 'end_turn' });
 };

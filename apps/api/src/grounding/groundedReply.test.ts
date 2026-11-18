@@ -6,13 +6,12 @@ import { buildSourceIndex } from '../retrieval/sourceIndex.js';
 import type { SourceIndex } from '../retrieval/sourceIndex.js';
 import { chunk, row } from '../retrieval/sourceFixtures.js';
 import type { GroundedDependencies, GroundedMessage, GroundedStream } from './groundedReply.js';
-import { NO_SOURCE_MESSAGE, WITHHELD_EXPLANATION } from './groundedReply.js';
+import { NO_SOURCE_MESSAGE, WITHHELD_MESSAGE } from './groundedReply.js';
 
 type SseEvent = { event: string; data: Record<string, unknown> };
 
 const TEXT_FRAGMENT = 'Синтетичний протокол гіпотермії: зігрівання, інфузія 0,15 мг/кг.';
 const TABLE_FRAGMENT = '| Препарат | Доза |\n| --- | --- |\n| Синтетикол | 0,15 мг/кг |';
-const FLAG_LINE = '🟢 GREEN \u2014 відповідь є у протоколі';
 
 const fixtureIndex = (): SourceIndex =>
   buildSourceIndex(
@@ -54,6 +53,9 @@ const dependencies = (overrides: Partial<GroundedDependencies> = {}): GroundedDe
   startStream: () => {
     throw new Error('model must not be called');
   },
+  replyWithoutSources: () => {
+    throw new Error('conversation reply must not be called');
+  },
   ...overrides,
 });
 
@@ -81,16 +83,15 @@ const postChat = async (grounded: GroundedDependencies, question: string): Promi
 };
 
 const QUESTION = 'Синтетичне питання: гіпотермія зігрівання інфузія';
+const OFF_BASE_QUESTION = 'рецепт борщу';
+const CONVERSATION_TEXT = 'Вітаю! Поставте питання щодо протоколів.';
 
-test('a verified answer is sent as flag, delta, citations, done with moz.gov.ua urls and no flag line in delta', async () => {
-  const reply = message([{ type: 'text', text: `${FLAG_LINE}\n`, citations: null }, citedText('Інфузія 0,15 мг/кг.', 0)]);
+test('a verified answer is sent as delta, citations, done with moz.gov.ua urls and the model text unchanged', async () => {
+  const reply = message([{ type: 'text', text: 'Зігрівання.\n', citations: null }, citedText('Інфузія 0,15 мг/кг.', 0)]);
   const { events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
-  assert.deepEqual(events.map(({ event }) => event), ['flag', 'delta', 'citations', 'done']);
-  assert.deepEqual(events[0]?.data, { level: 'GREEN', explanation: 'відповідь є у протоколі' });
-  const delta = String(events[1]?.data.text);
-  assert.equal(delta, 'Інфузія 0,15 мг/кг.');
-  assert.ok(!delta.includes('GREEN') && !delta.includes('🟢'));
-  const items = events[2]?.data.items;
+  assert.deepEqual(events.map(({ event }) => event), ['delta', 'citations', 'done']);
+  assert.equal(events[0]?.data.text, 'Зігрівання.\nІнфузія 0,15 мг/кг.');
+  const items = events[1]?.data.items;
   assert.ok(Array.isArray(items) && items.length > 0);
   items.forEach((item: unknown) => {
     assert.ok(typeof item === 'object' && item !== null && 'url' in item && typeof item.url === 'string');
@@ -99,9 +100,9 @@ test('a verified answer is sent as flag, delta, citations, done with moz.gov.ua 
 });
 
 test('a citation title is the section name, not a repeat of order, date and page', async () => {
-  const reply = message([{ type: 'text', text: `${FLAG_LINE}\n`, citations: null }, citedText('Інфузія 0,15 мг/кг.', 0)]);
+  const reply = message([citedText('Інфузія 0,15 мг/кг.', 0)]);
   const { events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
-  const items = events[2]?.data.items;
+  const items = events[1]?.data.items;
   assert.ok(Array.isArray(items));
   const [first]: unknown[] = items;
   assert.ok(typeof first === 'object' && first !== null && 'title' in first);
@@ -109,56 +110,137 @@ test('a citation title is the section name, not a repeat of order, date and page
 });
 
 test('order numbers and dates from the citation metadata do not verify numbers in the answer', async () => {
-  const reply = message([citedText(`${FLAG_LINE}\nЗгідно з наказом № 1000 інфузія 0,15 мг/кг.`, 0)]);
+  const reply = message([citedText('Згідно з наказом № 1000 інфузія 0,15 мг/кг.', 0)]);
   const { raw, events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
   assert.ok(!raw.includes('№ 1000'));
   assert.deepEqual(events.at(-1)?.data, { stopReason: 'withheld' });
 });
 
 test('a text block with digits but no citation withholds the whole answer', async () => {
-  const reply = message([{ type: 'text', text: `${FLAG_LINE}\nВвести 0,15 мг/кг `, citations: null }, citedText('зігрівання.', 0)]);
+  const reply = message([{ type: 'text', text: 'Ввести 0,15 мг/кг ', citations: null }, citedText('зігрівання.', 0)]);
   const { raw, events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
   assert.ok(!raw.includes('Ввести'));
   assert.deepEqual(events.at(-1)?.data, { stopReason: 'withheld' });
 });
 
 test('an answer with an unverified number is never visible on the event stream', async () => {
-  const reply = message([citedText(`${FLAG_LINE}\nВвести 0,2 мг/кг.`, 0)]);
+  const reply = message([citedText('Ввести 0,2 мг/кг.', 0)]);
   const { raw, events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
   assert.ok(!raw.includes('0,2') && !raw.includes('Ввести'));
-  assert.deepEqual(events[0]?.data, { level: 'RED', explanation: WITHHELD_EXPLANATION });
-  assert.equal(events[1]?.data.text, WITHHELD_EXPLANATION);
+  assert.deepEqual(events.map(({ event }) => event), ['delta', 'citations', 'done']);
+  assert.equal(events[0]?.data.text, WITHHELD_MESSAGE);
   assert.deepEqual(events.at(-1)?.data, { stopReason: 'withheld' });
 });
 
 test('a withheld answer that cited a table shows that table verbatim', async () => {
   const fragmentIndex = fixtureIndex().search(QUESTION).findIndex(({ chunk: { type } }) => type === 'table');
   assert.ok(fragmentIndex >= 0);
-  const reply = message([citedText(`${FLAG_LINE}\nВвести 0,2 мг/кг.`, fragmentIndex)]);
+  const reply = message([citedText('Ввести 0,2 мг/кг.', fragmentIndex)]);
   const { raw, events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
   assert.ok(!raw.includes('0,2'));
-  assert.equal(events[1]?.data.text, TABLE_FRAGMENT);
+  assert.equal(events[0]?.data.text, `${WITHHELD_MESSAGE}\n\n${TABLE_FRAGMENT}`);
 });
 
-test('a missing flag line becomes RED with an undetermined level', async () => {
-  const reply = message([citedText('Зігрівання.', 0)]);
-  const { events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
-  assert.deepEqual(events[0]?.data, { level: 'RED', explanation: 'Рівень не визначено моделлю' });
-  assert.equal(events[1]?.data.text, 'Зігрівання.');
+test('an uncited answer to a medical message is replaced by the no-source answer', async () => {
+  const reply = message([{ type: 'text', text: 'Зігрівання.', citations: null }]);
+  const grounded = dependencies({ startStream: () => resolvedStream(reply), replyWithoutSources: async () => ({ kind: 'medical' }) });
+  const { events } = await postChat(grounded, QUESTION);
+  assert.deepEqual(events.map(({ event }) => event), ['delta', 'citations', 'done']);
+  assert.equal(events[0]?.data.text, NO_SOURCE_MESSAGE);
+  assert.deepEqual(events[1]?.data, { items: [] });
+  assert.deepEqual(events.at(-1)?.data, { stopReason: 'no_sources' });
 });
 
-test('an answer without citations is replaced by the no-source answer', async () => {
-  const reply = message([{ type: 'text', text: `${FLAG_LINE}\nЗігрівання.`, citations: null }]);
-  const { events } = await postChat(dependencies({ startStream: () => resolvedStream(reply) }), QUESTION);
-  assert.deepEqual(events.map(({ event }) => event), ['flag', 'delta', 'citations', 'done']);
-  assert.deepEqual(events[0]?.data, { level: 'RED', explanation: NO_SOURCE_MESSAGE });
-  assert.deepEqual(events[2]?.data, { items: [] });
+test('an uncited answer to a conversation message is replaced by the conversation reply', async () => {
+  const reply = message([{ type: 'text', text: 'Зігрівання.', citations: null }]);
+  const grounded = dependencies({
+    startStream: () => resolvedStream(reply),
+    replyWithoutSources: async () => ({ kind: 'conversation', text: CONVERSATION_TEXT }),
+  });
+  const { events } = await postChat(grounded, QUESTION);
+  assert.equal(events[0]?.data.text, CONVERSATION_TEXT);
+  assert.deepEqual(events[1]?.data, { items: [] });
+  assert.deepEqual(events.at(-1)?.data, { stopReason: 'conversation' });
 });
 
-test('no fragment above threshold answers RED without calling the model', async () => {
-  const { events } = await postChat(dependencies(), 'рецепт борщу');
-  assert.deepEqual(events[0]?.data, { level: 'RED', explanation: NO_SOURCE_MESSAGE });
-  assert.equal(events[1]?.data.text, NO_SOURCE_MESSAGE);
+test('no fragment above threshold and a medical message answer with the no-source message without the grounded model', async () => {
+  const grounded = dependencies({ replyWithoutSources: async () => ({ kind: 'medical' }) });
+  const { events } = await postChat(grounded, OFF_BASE_QUESTION);
+  assert.deepEqual(events.map(({ event }) => event), ['delta', 'citations', 'done']);
+  assert.equal(events[0]?.data.text, NO_SOURCE_MESSAGE);
+  assert.deepEqual(events[1]?.data, { items: [] });
+  assert.deepEqual(events.at(-1)?.data, { stopReason: 'no_sources' });
+});
+
+test('no fragment above threshold and a conversation message answer with the conversation text and no citations', async () => {
+  let receivedMessages: unknown;
+  const grounded = dependencies({
+    replyWithoutSources: async (messages) => {
+      receivedMessages = messages;
+      return { kind: 'conversation', text: CONVERSATION_TEXT };
+    },
+  });
+  const { events } = await postChat(grounded, OFF_BASE_QUESTION);
+  assert.deepEqual(receivedMessages, [{ role: 'user', content: OFF_BASE_QUESTION }]);
+  assert.deepEqual(events.map(({ event }) => event), ['delta', 'citations', 'done']);
+  assert.equal(events[0]?.data.text, CONVERSATION_TEXT);
+  assert.deepEqual(events[1]?.data, { items: [] });
+  assert.deepEqual(events.at(-1)?.data, { stopReason: 'conversation' });
+});
+
+test('a conversation reply with a number is replaced by the no-source answer', async () => {
+  const grounded = dependencies({ replyWithoutSources: async () => ({ kind: 'conversation', text: 'Синтетична відповідь 5 мг.' }) });
+  const { raw, events } = await postChat(grounded, OFF_BASE_QUESTION);
+  assert.ok(!raw.includes('Синтетична відповідь'));
+  assert.equal(events[0]?.data.text, NO_SOURCE_MESSAGE);
+  assert.deepEqual(events[1]?.data, { items: [] });
+  assert.deepEqual(events.at(-1)?.data, { stopReason: 'no_sources' });
+});
+
+test('a conversation reply that matches the source base is replaced by the no-source answer', async () => {
+  const grounded = dependencies({ replyWithoutSources: async () => ({ kind: 'conversation', text: 'Гіпотермія: зігрівання та інфузія.' }) });
+  const { raw, events } = await postChat(grounded, OFF_BASE_QUESTION);
+  assert.ok(!raw.includes('Гіпотермія'));
+  assert.equal(events[0]?.data.text, NO_SOURCE_MESSAGE);
+  assert.deepEqual(events.at(-1)?.data, { stopReason: 'no_sources' });
+});
+
+test('a failed conversation reply yields a Ukrainian error event and no answer', async () => {
+  const grounded = dependencies({
+    replyWithoutSources: async () => {
+      throw new Error('synthetic failure');
+    },
+  });
+  const { events } = await postChat(grounded, OFF_BASE_QUESTION);
+  assert.deepEqual(events.map(({ event }) => event), ['error']);
+  assert.match(String(events[0]?.data.message), /[а-яіїєґ]/i);
+});
+
+test('client disconnect aborts the conversation reply and writes no error', async (t) => {
+  const consoleError = t.mock.method(console, 'error', () => undefined);
+  let receivedSignal: AbortSignal | undefined;
+  let markStarted: () => void = () => undefined;
+  const started = new Promise<void>((resolve) => (markStarted = resolve));
+  const app = createApp(
+    new Anthropic({ apiKey: 'test-key' }),
+    dependencies({
+      replyWithoutSources: (_messages, signal) => {
+        receivedSignal = signal;
+        markStarted();
+        return new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Anthropic.APIUserAbortError())));
+      },
+    }),
+  );
+  const response = await app.request('/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ messages: [{ role: 'user', content: OFF_BASE_QUESTION }] }),
+  });
+  await started;
+  await response.body?.cancel();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(receivedSignal?.aborted, true);
+  assert.equal(consoleError.mock.callCount(), 0);
 });
 
 test('a source base failure yields a Ukrainian error event and no answer', async () => {
