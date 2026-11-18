@@ -23,7 +23,7 @@ Read `CLAUDE.md`, `CONTEXT.md` and `AGENT_SPEC.md` before planning. Reply to the
 | Agent | Use for | Model |
 |-------|---------|-------|
 | `fe-developer` | `apps/mobile` | pass `model` per call, see below |
-| `be-developer` | `apps/api`: endpoints, SSE, persistence, ingestion, retrieval, and deterministic checks on answers (dosing-number check, flag signal combination) | opus |
+| `be-developer` | `apps/api`: endpoints, SSE, persistence, ingestion, retrieval, and deterministic checks on answers (dosing-number check) | opus |
 | `designer` | UI spec before `fe-developer` starts a screen or visual component; design review of the Expo web build after | opus |
 | `code-reviewer` | independent read-only review of the diff before QA | opus |
 | `qa-tester` | functional check of `/chat`, UI and responsive check on Expo web | sonnet |
@@ -35,7 +35,7 @@ Read `CLAUDE.md`, `CONTEXT.md` and `AGENT_SPEC.md` before planning. Reply to the
 ### FE model choice (pass `model` on the Agent call)
 
 - `haiku` — config, copy, assets: `app.json`, icons, splash config, string changes.
-- `sonnet` — ordinary components and screens on existing patterns: bubbles on theme tokens, flag element, labels, settings screen.
+- `sonnet` — ordinary components and screens on existing patterns: bubbles on theme tokens, labels, settings screen.
 - `opus` — state machines, streaming, keyboard/layout edge cases, markdown and dosing-table rendering, anything touching cancel/unmount/race logic.
 
 When unsure, pick the stronger model.
@@ -123,7 +123,7 @@ A scenario is run once per round and the model is not deterministic, so one pass
 
 Every scenario run spends real Anthropic API tokens on the user's key. Tell the user the scenario count before the first run.
 
-While there is no source base (KAN-7), the prompt returns RED with no medical content for every medical question. In that mode the loop can only check flag, refusal and format; say so instead of tuning medical answers.
+While there is no source base (KAN-7), the prompt returns RED with no medical content for every medical question. In that mode the loop can only check refusal and format; say so instead of tuning medical answers.
 
 ## Environment
 

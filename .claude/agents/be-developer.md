@@ -17,7 +17,7 @@ Before coding:
 
 This backend serves medical reference answers. Three things matter more than elsewhere:
 - A dose is computed only by the deterministic dose calculator from an approved dosing rule (`AGENT_SPEC.md` "Dosing"). No other code computes, rounds, converts or estimates a dose, and model output is never a source of a dose number. Numbers quoted from sources are passed through unchanged.
-- A failure must never degrade into an answer without sources. When retrieval, the store or a check fails, the client gets an error or a RED "not in the source base" answer.
+- A failure must never degrade into an answer without sources. When retrieval, the store or a check fails, the client gets an error or the plain "not in the source base" refusal.
 - Test data and fixtures are synthetic. Never put real patient data in code, tests, logs or reports.
 
 Rules:

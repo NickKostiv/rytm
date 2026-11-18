@@ -17,9 +17,8 @@ Phase 1 ships first; Phase 2 must not be designed into Phase 1 code prematurely.
 
 - **AI chat** over the official source base (RAG: retrieval over indexed documents + LLM answer generation).
 - **Citations** in every answer: document name, section/page, link to the official source.
-- **Dosing** — a deterministic calculator produces the patient-specific dose from dosing rules transcribed from the MoH protocols and approved by a clinician. The AI never calculates: online it recognises the parameters and quotes the protocol, and the backend calculator computes. Details: [AGENT_SPEC.md](AGENT_SPEC.md) "Dosing".
+- **Dosing** — a deterministic calculator produces the patient-specific dose from dosing rules transcribed from the MoH protocols and checked by a doctor and an EMS instructor. The AI never calculates: online it recognises the parameters and quotes the protocol, and the backend calculator computes. Details: [AGENT_SPEC.md](AGENT_SPEC.md) "Dosing".
 - **Offline calculator** — a form (condition, drug, age, weight, state) that runs the same calculator on the device with no AI and no network.
-- **Response flag** — every answer starts with GREEN / YELLOW / RED and an explanation. Details: [AGENT_SPEC.md](AGENT_SPEC.md).
 - **Authentication is mandatory** — no anonymous access to the app or the API.
 
 ## Architecture
@@ -37,7 +36,7 @@ Backend responsibilities: auth, chat API, LLM integration, source ingestion and 
 ## Product principles
 
 - **Source-grounded only.** Every factual claim maps to a cited source; no source → no answer.
-- **The AI is the interface, not the source of numbers.** A dose is either quoted from a source or computed by deterministic code from an approved rule; the LLM never computes or estimates one.
+- **The AI is the interface, not the source of numbers.** A dose is either quoted from a source or computed by deterministic code from a transcribed MoH rule; the LLM never computes or estimates one.
 - **Source freshness.** Each document has a version/date; outdated protocols are replaced, not mixed.
 - **Medical safety.** Clear disclaimer; the app supports clinical decisions, it does not replace them.
 - **Privacy.** No patient PII in chat logs or LLM requests.

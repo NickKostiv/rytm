@@ -2,45 +2,29 @@
 
 Behavior contract for the Rytm AI assistant. Source of truth for prompts, backend response schema and client rendering. Product context: [CONTEXT.md](CONTEXT.md).
 
-## Response flag
+## No source, missing context
 
-Every answer starts with a flag and a short explanation of why it was assigned. No answer is returned without a flag.
+Decided 2026-11-18: answers carry no flag or confidence level. The GREEN / YELLOW / RED flag is removed from the product.
 
-| Flag | Meaning | AI responsibility |
-|------|---------|-------------------|
-| 🟢 **GREEN** | Simple question; official sources cover this situation clearly and directly. | Lowest |
-| 🟡 **YELLOW** | Data comes from official sources, but the case is complex. The AI gives recommendations and a summary; the decision is made by the user. | Medium — advisory only |
-| 🔴 **RED** | Question is ambiguous or lacks context. Answer must be carefully verified; think through next steps before acting. | Highest risk — treat answer as unreliable until verified |
-
-### Assignment rules
-
-- **GREEN** only if all hold: single clear question, a matching source fragment found, no conflicting sources, all parameters needed for the answer are known.
-- **YELLOW** when sources are found but: multiple conditions/comorbidities, several valid options, the protocol leaves the choice to the clinician, or the answer is a synthesis of several sources.
-- **RED** when any holds: question is ambiguous, key context is missing (age, weight, condition, current drugs), sources conflict, or retrieval confidence is low.
-- When unsure between two levels — pick the higher-risk one.
-- No relevant source found → **RED**, the assistant says the answer is not in the source base and does not answer from general knowledge.
-
-### Flag explanation
-
-- 1–2 sentences, specific to the question (what is clear / what is missing / what conflicts).
-- For RED — list exactly which context is missing, so the user can supply it.
+- No relevant source found → a plain refusal «Цього немає в базі протоколів МОЗ». No level, no label, no answer from general knowledge.
+- A parameter the answer depends on (age, weight, condition, current drugs) is missing → the assistant asks for it, never assumes it.
 
 ## Dosing
 
-Decided 2026-11-17. The LLM does **no** dose math: it never calculates, converts, rounds or estimates a dose. A patient-specific dose is produced only by the deterministic dose calculator from an approved dosing rule. Until the calculator exists, a patient-specific request gets a refusal to calculate plus the quoted protocol.
+Decided 2026-11-17. The LLM does **no** dose math: it never calculates, converts, rounds or estimates a dose. A patient-specific dose is produced only by the deterministic dose calculator from a dosing rule in the rule set. Until the calculator exists, a patient-specific request gets a refusal to calculate plus the quoted protocol.
 
 ### Dosing rules
 
 - A dosing rule is a structured record: drug, indication, route, either a per-kg dose or a fixed dose per weight / age band (MoH protocols use both), maximum single dose, maximum daily dose, concentration, repeat interval, source document, page and version date.
-- Rules are transcribed from the MoH source base by a person and approved by a named clinician. A rule without approval is not used.
-- A rule whose source document is not in force is not used.
-- No approved rule for the drug and indication → no calculated number, in either mode.
+- Rules are transcribed from the MoH source base only, by the AI agent, and checked against the PDFs by a doctor and an EMS instructor outside the app. The rule set keeps no approval record (decided 2026-11-18). Process and schema: [docs/dosing-rules.md](docs/dosing-rules.md).
+- A rule whose source document is known to be superseded or not in force is not used. A source with unverified validity is used and shown as «чинність не перевірено».
+- No rule for the drug and indication → no calculated number, in either mode.
 
 ### Calculator
 
 - One implementation, shared by the backend and the app, so online and offline give the same result for the same input.
 - Input: drug, indication, route, weight, age. Output: dose, volume for the rule's concentration, the formula as applied, the maximum dose, the rule's source and version date.
-- It caps the result at the maximum single dose and says so. It rejects a weight that is implausible for the age. It applies no rounding that the rule does not define.
+- It caps the result at the maximum single dose and says so. It rejects a weight that is implausible for the age once a weight-for-age reference with a source exists; until then it rejects only a weight that is not a positive number. It applies no rounding that the rule does not define.
 - A missing parameter is asked for, never assumed.
 
 ### Online mode (chat)
@@ -53,7 +37,7 @@ Decided 2026-11-17. The LLM does **no** dose math: it never calculates, converts
 - The dose block is rendered from the calculator's output, never from model text.
 - In AI text every number appears verbatim in a cited source fragment. The backend verifies this and withholds answers that contain other numbers.
 - A dosing question with no patient parameters is answered with the quoted protocol fragment or table, as written and cited.
-- No fragment and no rule for the drug / indication → RED, no numbers shown.
+- No fragment and no rule for the drug / indication → the plain refusal, no numbers shown.
 
 ### Offline mode (calculator screen)
 
@@ -63,22 +47,21 @@ Decided 2026-11-17. The LLM does **no** dose math: it never calculates, converts
 
 ## Answer format
 
-1. Flag + explanation.
-2. Dose block (if a dose was calculated) — from the calculator: dose, volume, formula, maximum dose, protocol link and version date.
-3. Answer — concise, field-ready (short steps/bullets), quoting the protocol.
-4. Sources — document name, section/page, version/date, link.
+1. Dose block (if a dose was calculated) — from the calculator: dose, volume, formula, maximum dose, protocol link and version date.
+2. Answer — concise, field-ready (short steps/bullets), quoting the protocol.
+3. Sources — document name, section/page, version/date, link.
 
 ## Hard rules
 
 - Answers only from the indexed official source base; every factual claim maps to a citation.
-- No dose number generated by the LLM: a dose is either quoted verbatim from a cited fragment or produced by the calculator from an approved rule. No invented drugs, protocols or links.
+- Every answer with citations shows its sources (decided 2026-11-18). A source that is not an official MoH document (for example a foreign guideline) is visibly labelled as not an official MoH source.
+- No dose number generated by the LLM: a dose is either quoted verbatim from a cited fragment or produced by the calculator from a rule in the rule set. No invented drugs, protocols or links.
 - No patient PII sent to the LLM or stored in logs.
 - The assistant supports clinical decisions, it does not make them.
 
 ## Open decisions
 
-- How the flag is computed: LLM self-assessment alone is unreliable — plan to combine it with deterministic signals (retrieval score, source conflicts, dosing-number verification).
+- How an answer shows that two cited sources conflict.
 - Response language for users (Ukrainian assumed).
-- Dosing: how the recognised parameters and the calculator result travel in the chat contract; who the approving clinician is; the rounding rule per drug; how the offline rule set is updated and how a stale one is shown; whether offline mode is in the MVP.
-- What the flag means on a calculated-dose answer.
-- Patient mode (Phase 2) flag rules — likely stricter (no dosing for self-treatment).
+- Dosing: how the recognised parameters and the calculator result travel in the chat contract; the weight-for-age reference; how the offline rule set is updated and how a stale one is shown; whether offline mode is in the MVP.
+- Patient mode (Phase 2) rules — likely stricter (no dosing for self-treatment).
