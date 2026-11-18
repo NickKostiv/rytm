@@ -1,4 +1,5 @@
 import { ROUTE_LABELS } from '@rytm/dosing';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,11 +13,13 @@ import {
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
 import type { DoseCandidate } from '@/features/chat/types';
+import { formatRouteShortLabel } from '@/features/dosing/format-route-label';
 import { useTheme } from '@/hooks/use-theme';
 
 const SELECTED_PREFIX = '✓ ';
 
 type RouteOptionsProps = {
+  label: ReactNode;
   candidates: DoseCandidate[];
   selectedRuleId: string | null;
   hasSingleIndication: boolean;
@@ -26,6 +29,7 @@ type RouteOptionsProps = {
 };
 
 export function RouteOptions({
+  label,
   candidates,
   selectedRuleId,
   hasSingleIndication,
@@ -37,23 +41,23 @@ export function RouteOptions({
 
   return (
     <View style={styles.section}>
-      <ThemedText type="caption" themeColor="textSecondary">
-        {DOSE_COPY.routeLabel}
-      </ThemedText>
+      {label}
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel={DOSE_COPY.routeLabel}
         style={styles.options}>
         {candidates.map(({ ruleId, indication, route }) => {
           const isSelected = ruleId === selectedRuleId;
-          const { short, spoken } = ROUTE_LABELS[route];
+          const { spoken } = ROUTE_LABELS[route];
+          const short = formatRouteShortLabel(route);
           const label = hasSingleIndication ? short : `${indication} · ${short}`;
           return (
             <Pressable
               key={ruleId}
               accessibilityRole="radio"
               accessibilityLabel={hasSingleIndication ? spoken : `${indication}, ${spoken}`}
-              accessibilityState={{ checked: isSelected, disabled: isDisabled }}
+              aria-checked={isSelected}
+              aria-disabled={isDisabled}
               disabled={isDisabled}
               onPress={() => onSelect(ruleId)}
               style={[

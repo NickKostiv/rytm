@@ -1,4 +1,4 @@
-import { ROUTE_LABELS, toDisplayDecimal } from '@rytm/dosing';
+import { toDisplayDecimal } from '@rytm/dosing';
 import type { ComponentRef, Ref } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -13,6 +13,7 @@ import {
   CAPPED_NOTE_PADDING,
   DOSE_RESULT_COPY,
 } from '@/features/dosing/constants';
+import { formatRouteShortLabel } from '@/features/dosing/format-route-label';
 import type { DoseResult as DoseResultData } from '@/features/dosing/types';
 import { formatOrderDate } from '@/features/sources/format-order-date';
 import { useTheme } from '@/hooks/use-theme';
@@ -38,7 +39,7 @@ export function DoseResult({ result, headerRef }: DoseResultProps) {
       <DoseCardHeader ref={headerRef} title={DOSE_RESULT_COPY.resultTitle} />
       <ThemedText type="bodyCompact" style={styles.summary}>
         {DOSE_RESULT_COPY.summary(
-          [rule.drug, rule.indication, ROUTE_LABELS[rule.route].short],
+          [rule.drug, rule.indication, formatRouteShortLabel(rule.route)],
           toDisplayNumber(result.weightKg),
         )}
       </ThemedText>

@@ -1,5 +1,5 @@
 import { type ComponentRef, useEffect, useRef } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -10,17 +10,9 @@ import type { DoseParameters, DoseParametersPrompt } from '@/features/chat/types
 import { createDoseCard } from '@/features/chat/use-dose-cards';
 import { DoseResult } from '@/features/dosing/components/dose-result';
 import { DOSE_CARD_RADIUS } from '@/features/dosing/constants';
+import { focusAccessibilityNode } from '@/features/dosing/focus-accessibility-node';
 import { useChatSession } from '@/features/history/chat-session-provider';
 import { useTheme } from '@/hooks/use-theme';
-
-function focusHeader(node: ComponentRef<typeof View> | null) {
-  if (!node) return;
-  if (Platform.OS === 'web') {
-    node.focus();
-  } else {
-    AccessibilityInfo.sendAccessibilityEvent(node, 'focus');
-  }
-}
 
 type DoseSectionProps = {
   assistantId: string;
@@ -54,7 +46,7 @@ function DoseCalculation({ assistantId, prompt }: DoseCalculationProps) {
   useEffect(() => {
     if (wasShowingDoseRef.current === isShowingDose) return;
     wasShowingDoseRef.current = isShowingDose;
-    focusHeader(headerRef.current);
+    focusAccessibilityNode(headerRef.current);
   }, [isShowingDose]);
 
   return (

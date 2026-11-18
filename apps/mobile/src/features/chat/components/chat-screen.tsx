@@ -8,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { CALCULATOR_COPY } from '@/features/calculator/constants';
 import { AssistantMessage } from '@/features/chat/components/assistant-message';
 import { ChatComposer } from '@/features/chat/components/chat-composer';
 import { ChatEmptyState } from '@/features/chat/components/chat-empty-state';
@@ -30,6 +31,11 @@ const HISTORY_SYMBOL: SymbolViewProps['name'] = {
   ios: 'clock.arrow.circlepath',
   android: 'history',
   web: 'history',
+};
+const CALCULATOR_SYMBOL: SymbolViewProps['name'] = {
+  ios: 'plus.forwardslash.minus',
+  android: 'calculate',
+  web: 'calculate',
 };
 const NEW_CHAT_SYMBOL: SymbolViewProps['name'] = {
   ios: 'square.and.pencil',
@@ -121,12 +127,19 @@ export function ChatScreen() {
             />
           ),
           headerRight: () => (
-            <HeaderIconButton
-              symbol={NEW_CHAT_SYMBOL}
-              accessibilityLabel={COPY.newChatA11y}
-              isDisabled={messages.length === 0}
-              onPress={startNewConversation}
-            />
+            <View style={styles.headerActions}>
+              <HeaderIconButton
+                symbol={CALCULATOR_SYMBOL}
+                accessibilityLabel={CALCULATOR_COPY.screenTitle}
+                onPress={() => router.push('/calculator')}
+              />
+              <HeaderIconButton
+                symbol={NEW_CHAT_SYMBOL}
+                accessibilityLabel={COPY.newChatA11y}
+                isDisabled={messages.length === 0}
+                onPress={startNewConversation}
+              />
+            </View>
           ),
         }}
       />
@@ -175,6 +188,9 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  headerActions: {
+    flexDirection: 'row',
   },
   headerTitle: {
     fontSize: 17,

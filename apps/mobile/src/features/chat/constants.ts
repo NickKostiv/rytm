@@ -35,7 +35,7 @@ export const EXAMPLE_ROW_RADIUS = 12;
 export const EXAMPLE_ROW_PADDING_VERTICAL = 12;
 export const RETRY_MIN_WIDTH = 120;
 export const HEADER_ICON_SIZE = 24;
-export const HEADER_TITLE_RESERVED_WIDTH = 168;
+export const HEADER_TITLE_RESERVED_WIDTH = 216;
 export const HEADER_TITLE_MIN_WIDTH = 140;
 export const HEADER_MAX_FONT_SCALE = 1.6;
 

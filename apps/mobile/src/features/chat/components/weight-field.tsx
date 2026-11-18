@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ComponentRef, type ReactNode, type Ref, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -16,6 +16,8 @@ import { useTheme } from '@/hooks/use-theme';
 const EMPHASIS_BORDER_WIDTH = 2;
 
 type WeightFieldProps = {
+  label: ReactNode;
+  inputRef?: Ref<ComponentRef<typeof TextInput>>;
   value: string;
   error: string | null;
   hint: string | null;
@@ -23,7 +25,15 @@ type WeightFieldProps = {
   onChange: (text: string) => void;
 };
 
-export function WeightField({ value, error, hint, isEditable, onChange }: WeightFieldProps) {
+export function WeightField({
+  label,
+  inputRef,
+  value,
+  error,
+  hint,
+  isEditable,
+  onChange,
+}: WeightFieldProps) {
   const theme = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const focusColor = isFocused ? theme.accent : null;
@@ -31,11 +41,10 @@ export function WeightField({ value, error, hint, isEditable, onChange }: Weight
 
   return (
     <View style={styles.section}>
-      <ThemedText type="caption" themeColor="textSecondary">
-        {DOSE_COPY.weightLabel}
-      </ThemedText>
+      {label}
       <View style={styles.row}>
         <TextInput
+          ref={inputRef}
           accessibilityLabel={DOSE_COPY.weightA11y}
           value={value}
           onChangeText={onChange}

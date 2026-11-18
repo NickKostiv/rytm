@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
+import { CALCULATOR_COPY } from '@/features/calculator/constants';
 import { ChatSessionProvider } from '@/features/history/chat-session-provider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -21,6 +22,7 @@ export default function RootLayout() {
             }}>
             <Stack.Screen name="index" options={{ title: 'Rytm' }} />
             <Stack.Screen name="history" dangerouslySingular />
+            <Stack.Screen name="calculator" options={{ title: CALCULATOR_COPY.screenTitle }} />
           </Stack>
         </ChatSessionProvider>
       </ThemeProvider>

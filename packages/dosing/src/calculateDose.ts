@@ -42,7 +42,7 @@ type DoseStep = { doseMg: Decimal; formulaSteps: string[] };
 
 const MAX_WEIGHT_DECIMAL_PLACES = 2;
 
-const MAX_WEIGHT_KG = 300;
+export const MAX_WEIGHT_KG = 300;
 
 const NO_BREAK_SPACE = '\u00A0';
 

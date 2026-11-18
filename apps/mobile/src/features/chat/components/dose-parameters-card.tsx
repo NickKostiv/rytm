@@ -63,6 +63,11 @@ export function DoseParametersCard({
           : firstCandidate.drug}
       </ThemedText>
       <RouteOptions
+        label={
+          <ThemedText type="caption" themeColor="textSecondary">
+            {DOSE_COPY.routeLabel}
+          </ThemedText>
+        }
         candidates={candidates}
         selectedRuleId={draft.ruleId}
         hasSingleIndication={hasSingleIndication}
@@ -72,6 +77,11 @@ export function DoseParametersCard({
       />
       {selected?.population != null && <PopulationNotice population={selected.population} />}
       <WeightField
+        label={
+          <ThemedText type="caption" themeColor="textSecondary">
+            {DOSE_COPY.weightLabel}
+          </ThemedText>
+        }
         value={draft.weightText}
         error={card.weightError}
         hint={draft.weightText.trim() === '' ? DOSE_COPY.emptyWeightHint : null}
@@ -94,7 +104,8 @@ export function DoseParametersCard({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={isSubmitting ? DOSE_COPY.submitting : DOSE_COPY.confirm}
-        accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+        aria-disabled={isSubmitting}
+        aria-busy={isSubmitting}
         disabled={isSubmitting}
         onPress={onConfirm}
         style={[

@@ -1,15 +1,11 @@
-import { calculateDose, MOH_RULE_SET_DATE, MOH_RULE_SOURCE_DOCUMENTS } from '@rytm/dosing';
-import type { DoseOutcome, DosingRule, RuleSet } from '@rytm/dosing';
+import { calculateDose, toDoseResultBody } from '@rytm/dosing';
+import type { DoseOutcome, DoseResultBody, DosingRule, RuleSet } from '@rytm/dosing';
 
 type DoseRequest = { ruleId: string; weightKg: number };
 
-type CalculatedDose = Extract<DoseOutcome, { kind: 'dose' }>;
-
 type RejectedDose = Extract<DoseOutcome, { kind: 'rejected' }>;
 
-type DoseResponseBody =
-  | (CalculatedDose & { weightKg: number; sourceUrl: string; sourceTitle: string; ruleSetDate: string })
-  | RejectedDose;
+type DoseResponseBody = DoseResultBody | RejectedDose;
 
 type DoseResponse =
   | { status: 200; body: DoseResponseBody }
@@ -46,19 +42,10 @@ const calculateForRule = (ruleSet: RuleSet, rule: DosingRule, weightKg: number):
   const outcome = calculateDose(ruleSet, { drug: rule.drug, indication: rule.indication, route: rule.route, weightKg });
   if (outcome.kind === 'rejected') return rejected(outcome, rule.id);
   if (outcome.kind === 'missing_parameter') return unavailable(`outcome=missing_parameter rule=${rule.id}`);
-  const document = MOH_RULE_SOURCE_DOCUMENTS.get(outcome.rule.source.registryId);
-  if (!document) return unavailable(`outcome=no_source_document rule=${rule.id}`);
+  const body = toDoseResultBody(outcome, weightKg);
+  if (!body) return unavailable(`outcome=no_source_document rule=${rule.id}`);
   console.log(`Dose request: outcome=dose rule=${rule.id}`);
-  return {
-    status: HTTP_OK,
-    body: {
-      ...outcome,
-      weightKg,
-      sourceUrl: `${document.url}#page=${outcome.rule.source.page}`,
-      sourceTitle: document.title,
-      ruleSetDate: MOH_RULE_SET_DATE,
-    },
-  };
+  return { status: HTTP_OK, body };
 };
 
 const readRuleSet = async (getRuleSet: () => Promise<RuleSet>): Promise<RuleSet | null> => {

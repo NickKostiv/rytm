@@ -1,4 +1,6 @@
-export { calculateDose } from '#calculateDose';
+export { calculateDose, MAX_WEIGHT_KG } from '#calculateDose';
+export { toDoseResultBody } from '#doseResult';
+export type { CalculatedDose, DoseResultBody } from '#doseResult';
 export type { DoseInput, DoseOutcome, DoseParameter, DoseVolume } from '#calculateDose';
 export type {
   BandDose,
