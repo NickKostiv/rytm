@@ -51,6 +51,17 @@ test('Latin homoglyphs, word endings and drug synonyms are folded', () => {
   assert.deepEqual(documentIds(index.search('EMД адреналін')), ['a']);
 });
 
+test('patient age and weight in the query do not filter out the matching section', () => {
+  const index = buildSourceIndex(
+    [chunk('a', 1, 'Синтетичний текст: анафілаксія, дозування епінефрину 0,5 мг в/м.'), ...fillerChunks('b')],
+    [row('a'), row('b')],
+  );
+  const expected = index.search('дозування адреналіну при анафілаксії');
+  assert.deepEqual(documentIds(expected), ['a']);
+  assert.deepEqual(index.search('дозування адреналіну 20 років 70кг, 70kg, 15 кілограмів, 5 міс, 2 тиж, 3 р. при анафілаксії'), expected);
+  assert.deepEqual(index.search('70 кг 20 років'), []);
+});
+
 test('caps fragments per document', () => {
   const chunks = Array.from({ length: 6 }, (_, page) =>
     chunk('a', page + 1, 'Синтетичний текст: тахікардія.', { id: `a:p${page + 1}:0` }),

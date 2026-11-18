@@ -29,6 +29,8 @@ const STEM_SYNONYMS: Readonly<Record<string, string>> = {
   норадреналін: 'норепінефрин',
 };
 
+const PATIENT_PARAMETER =
+  /^\d*(?:кг|г|kg|g|кілограм|кілограми|кілограмів|грам|грами|грамів|р|рік|року|роки|років|міс|місяць|місяця|місяці|місяців|тиж|тиждень|тижня|тижні|тижнів|дн|день|дня|дні|днів)?$/u;
 const MIN_STEM_LENGTH = 4;
 const CYRILLIC = /\p{Script=Cyrillic}/u;
 const APOSTROPHES = /['’ʼ`]/g;
@@ -42,9 +44,16 @@ const stem = (token: string): string => {
   return ending ? token.slice(0, -ending.length) : token;
 };
 
-export const toSearchTerms = (text: string): string[] =>
-  (text.toLowerCase().replace(APOSTROPHES, '').match(TOKEN) ?? [])
-    .map(foldHomoglyphs)
+const toTokens = (text: string): string[] =>
+  (text.toLowerCase().replace(APOSTROPHES, '').match(TOKEN) ?? []).map(foldHomoglyphs);
+
+const toTerms = (tokens: string[]): string[] =>
+  tokens
     .filter((token) => !STOP_WORDS.has(token))
     .map(stem)
     .map((term) => STEM_SYNONYMS[term] ?? term);
+
+export const toSearchTerms = (text: string): string[] => toTerms(toTokens(text));
+
+export const toQueryTerms = (query: string): string[] =>
+  toTerms(toTokens(query).filter((token) => !PATIENT_PARAMETER.test(token)));

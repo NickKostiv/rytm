@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type { SourceChunk } from '../sources/sourceChunks.js';
 import { isRetrievable, readRegistry, type SourceRow } from '../sources/sourceRegistry.js';
 import { resolveOrderDates } from './resolveOrderDates.js';
-import { toSearchTerms } from './searchTerms.js';
+import { toQueryTerms, toSearchTerms } from './searchTerms.js';
 
 export type RetrievedFragment = { chunk: SourceChunk; row: SourceRow; score: number };
 
@@ -84,7 +84,7 @@ export const buildSourceIndex = (chunks: SourceChunk[], rows: SourceRow[]): Sour
     );
 
   const search = (query: string): RetrievedFragment[] => {
-    const terms = [...new Set(toSearchTerms(query))];
+    const terms = [...new Set(toQueryTerms(query))];
     const queryWeight = terms.reduce((sum, term) => sum + inverseFrequency(term), 0);
     if (queryWeight === 0) return [];
     const scored = indexed
