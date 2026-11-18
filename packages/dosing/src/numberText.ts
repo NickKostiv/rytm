@@ -1,5 +1,5 @@
-const SPACE_VARIANTS = /[    ]/g;
-const DASH_VARIANTS = /[‒–—−]/g;
+const SPACE_VARIANTS = /[\u00A0\u2007\u202F\u2009]/g;
+const DASH_VARIANTS = /[\u2012\u2013\u2014\u2212]/g;
 const DECIMAL_COMMA = /(\d),(\d)/g;
 const DIGIT_GROUPS = /(?<!\d)\d{1,3}(?: \d{3})+(?!\d)/g;
 

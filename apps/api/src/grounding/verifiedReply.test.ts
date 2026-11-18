@@ -404,6 +404,116 @@ test('nothing found after the re-search: a labelled free answer with empty citat
   assert.deepEqual(final(refused.events).at(-1)?.data, { stopReason: 'no_sources' });
 });
 
+test('empty retrieval terms skip the re-search and the free answer goes out without fragments', async () => {
+  const requests: VerifiedStreamRequest[] = [];
+  const { events } = await postChat(
+    dependencies({
+      classify: async () => ({ kind: 'medical', retrievalTerms: ['70', 'в/м'] }),
+      startStream: (request) => {
+        requests.push(request);
+        return streamOf(message([webResults, webCited('Синтетична порада «вдома».', 'порада вдома')]));
+      },
+    }),
+    OFF_BASE_QUESTION,
+  );
+  assert.equal(requests.length, 1);
+  assert.deepEqual(requests[0]?.messages.at(-1)?.content, [{ type: 'text', text: OFF_BASE_QUESTION }]);
+  assert.deepEqual(final(events).at(-1)?.data, { stopReason: 'end_turn' });
+});
+
+test('calculator precedence on the no-fragment path: a matched rule turns a web-bound volume into no_sources, no_rule lets it pass, no card is sent', async (t) => {
+  t.mock.method(console, 'warn', () => undefined);
+  const answer = 'Синтетикол «1 мг/мл», «0,5 мг»: 0,5 мл.';
+  const run = (extractDoseParameters: VerifiedDependencies['extractDoseParameters']) =>
+    postChat(
+      dependencies({
+        classify: async () => ({ kind: 'medical', retrievalTerms: [] }),
+        startStream: () => streamOf(message([webResults, webCited(answer, 'Синтетикол 1 мг/мл: 0,5 мг в/м')])),
+        extractDoseParameters,
+      }),
+      OFF_BASE_QUESTION,
+    );
+  const matched = await run(extractionOf({ drug: 'дексаметазон', indication: 'круп', route: 'po', weightKg: 12 }));
+  assert.deepEqual(final(matched.events).map(({ data }) => data), [{ text: NO_SOURCE_MESSAGE }, { items: [] }, { stopReason: 'no_sources' }]);
+
+  const noRule = await run(extractionOf({ drug: 'other', indication: 'other', route: 'im' }));
+  assert.deepEqual(names(final(noRule.events)), ['delta', 'citations', 'web_sources', 'done']);
+  assert.equal(final(noRule.events)[0]?.data.text, `${answer}${OUTSIDE_PROTOCOLS_LABEL}`);
+
+  const failed = await run(async () => ({ stopReason: 'end_turn', text: 'not json' }));
+  assert.deepEqual(final(failed.events).at(-1)?.data, { stopReason: 'no_sources' });
+});
+
+test('a withheld answer quotes at most three fragments', async () => {
+  const answer = 'Зігрівання.\nОрганізація роботи бригади.\nДокументування виклику.';
+  const { events } = await postChat(
+    dependencies({
+      startStream: () => streamOf(message([mohCited(answer)])),
+      judge: async (input, signal) => {
+        const fragmentIds = [...input.matchAll(/<fragment id="(F\d+)"/g)].map(([, id = '']) => id);
+        assert.ok(fragmentIds.length > 3);
+        return judgeOf(['contradicted', fragmentIds], ['not_covered', []], ['not_covered', []])(input, signal);
+      },
+    }),
+    QUESTION,
+  );
+  const answerEvents = final(events);
+  assert.deepEqual(answerEvents.at(-1)?.data, { stopReason: 'withheld' });
+  assert.equal(itemIds(answerEvents.find(({ event }) => event === 'citations')).length, 3);
+});
+
+test('an empty answer is withheld with quotes when fragments exist and is no_sources without them; the judge is not called', async () => {
+  const medical = async (): Promise<ClassifiedReply> => ({ kind: 'medical', retrievalTerms: [] });
+  let judgeCalls = 0;
+  const countingJudge: VerifiedDependencies['judge'] = async (input, signal) => {
+    judgeCalls += 1;
+    return judgeOf()(input, signal);
+  };
+  const withFragments = await postChat(
+    dependencies({ classify: medical, startStream: () => streamOf(message([plain('  ')])), judge: countingJudge }),
+    QUESTION,
+  );
+  assert.equal(judgeCalls, 0);
+  assert.deepEqual(final(withFragments.events).at(-1)?.data, { stopReason: 'withheld' });
+  assert.ok(String(final(withFragments.events)[0]?.data.text).startsWith(VERIFICATION_FAILED_MESSAGE));
+  const withoutFragments = await postChat(dependencies({ classify: medical, startStream: () => streamOf(message([plain('')])) }), OFF_BASE_QUESTION);
+  assert.deepEqual(final(withoutFragments.events).at(-1)?.data, { stopReason: 'no_sources' });
+});
+
+test('the no-fragment path past the turn deadline ends as no_sources, never as an answer', async (t) => {
+  t.mock.method(console, 'warn', () => undefined);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const pending = postChat(
+    dependencies({
+      classify: async () => ({ kind: 'medical', retrievalTerms: [] }),
+      startStream: () => streamOf(message([webResults, webCited('Синтетична порада «вдома».', 'порада вдома')])),
+      extractDoseParameters: () => new Promise<StructuredOutput>(() => undefined),
+    }),
+    OFF_BASE_QUESTION,
+  );
+  let isSettled = false;
+  void pending.then(() => (isSettled = true));
+  for (let attempt = 0; attempt < 50 && !isSettled; attempt += 1) {
+    await new Promise((resolve) => setImmediate(resolve));
+    t.mock.timers.tick(VERIFIED_TURN_DEADLINE_MS);
+  }
+  const { events } = await pending;
+  assert.deepEqual(final(events).at(-1)?.data, { stopReason: 'no_sources' });
+});
+
+test('an API error on the no-fragment path is an error event, never no_sources', async (t) => {
+  t.mock.method(console, 'error', () => undefined);
+  const apiError = new Anthropic.BadRequestError(400, undefined, 'synthetic', new Headers());
+  const failingStream: VerifiedStream = { abort: () => undefined, finalMessage: async () => Promise.reject(apiError) };
+  const answerFails = await postChat(
+    dependencies({ classify: async () => ({ kind: 'medical', retrievalTerms: [] }), startStream: () => failingStream }),
+    OFF_BASE_QUESTION,
+  );
+  assert.deepEqual(names(final(answerFails.events)), ['error']);
+  const classifierFails = await postChat(dependencies({ classify: async () => Promise.reject(apiError) }), OFF_BASE_QUESTION);
+  assert.deepEqual(names(final(classifierFails.events)), ['error']);
+});
+
 test('owner acceptance case on the real source base: rewrite retrieves 3.4, the 0,3 мл answer from page 64 passes', async () => {
   const index = await createLazySourceIndex()();
   const ownerQuestion = 'Пацієнт 70 років, після антибіотика почалась анафілаксія, скільки мл адреналіну набрати в м’яз?';

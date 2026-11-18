@@ -501,9 +501,9 @@ test('age, weight and the calculated dose never reach the server logs', async (t
   assert.equal(events[0]?.data.weightKg, 23.45);
   const doseBody: unknown = await (await postJson(app, '/dose', { ruleId: 'dexamethasone-croup-po', weightKg: 23.45 })).json();
   assert.ok(typeof doseBody === 'object' && doseBody !== null && 'doseMg' in doseBody && doseBody.doseMg === '14.07');
-  await postJson(app, '/dose', { ruleId: 'dexamethasone-croup-po', weightKg: 350 });
+  await postJson(app, '/dose', { ruleId: 'dexamethasone-croup-po', weightKg: 350.5 });
   assert.ok(logged.length > 0);
-  const forbidden = ['23.45', '23,45', '350', '14.07', '14,07', 'рок', DOSE_QUESTION];
+  const forbidden = ['23.45', '23,45', '350.5', '350,5', '14.07', '14,07', 'рок', DOSE_QUESTION];
   logged.forEach((line) => forbidden.forEach((value) => assert.ok(!line.includes(value), `log line contains ${value}`)));
 });
 

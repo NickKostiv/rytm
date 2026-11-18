@@ -9,6 +9,29 @@ const NUMBER = /\d+(?:[.:]\d+)*/g;
 const NON_ASCII_NUMERAL = /(?![0-9])\p{N}/gu;
 const SIMPLE_DECIMAL = /^\d+\.\d+$/;
 const RATIO_SEPARATOR = ':';
+const UNIT_AFTER_NUMBER =
+  /^\s*(?:-\s*\d+(?:\.\d+)?\s*)?(мкг|mcg|µg|μg|мг|mg|нг|ng|гр|г|g|од|мо|ме|iu|ммоль|mmol|%)((?:\s*\/\s*(?:кг|kg|хв|min|год|hr|h|добу|day|мл|ml))*)(?![\p{L}\d])/iu;
+const SPACES = /\s+/g;
+const UNIT_SPELLINGS: ReadonlyMap<string, string> = new Map([
+  ['mcg', 'мкг'],
+  ['µg', 'мкг'],
+  ['μg', 'мкг'],
+  ['mg', 'мг'],
+  ['ng', 'нг'],
+  ['гр', 'г'],
+  ['g', 'г'],
+  ['ме', 'мо'],
+  ['iu', 'мо'],
+  ['mmol', 'ммоль'],
+  ['kg', 'кг'],
+  ['min', 'хв'],
+  ['hr', 'год'],
+  ['h', 'год'],
+  ['day', 'добу'],
+  ['ml', 'мл'],
+]);
+
+type NumberKeys = { answerKey: (text: string, span: TokenSpan) => string; sourceKeys: (sourceText: string) => string[] };
 
 const canonicalNumber = (token: string): string =>
   SIMPLE_DECIMAL.test(token) ? token.replace(/0+$/, '').replace(/\.$/, '') : token;
@@ -20,6 +43,23 @@ const sourceNumbers = (sourceText: string): string[] =>
 
 const tokenSpans = (text: string, pattern: RegExp): TokenSpan[] =>
   [...text.matchAll(pattern)].map((match) => ({ token: match[0], start: match.index, end: match.index + match[0].length }));
+
+const canonicalUnit = (unit: string): string => unit.toLowerCase().split('/').map((part) => UNIT_SPELLINGS.get(part) ?? part).join('/');
+
+const numberWithUnit = (text: string, span: TokenSpan): string => {
+  const match = UNIT_AFTER_NUMBER.exec(text.slice(span.end));
+  const number = canonicalNumber(span.token);
+  return match ? `${number} ${canonicalUnit(`${match[1] ?? ''}${match[2] ?? ''}`.replace(SPACES, ''))}` : number;
+};
+
+const sourceNumbersWithUnits = (sourceText: string): string[] => {
+  const normalized = normalizeNumberText(sourceText);
+  return [...sourceNumbers(sourceText), ...tokenSpans(normalized, NUMBER).map((span) => numberWithUnit(normalized, span))];
+};
+
+const PLAIN_NUMBER_KEYS: NumberKeys = { answerKey: (_text, span) => canonicalNumber(span.token), sourceKeys: sourceNumbers };
+
+const UNIT_NUMBER_KEYS: NumberKeys = { answerKey: numberWithUnit, sourceKeys: sourceNumbersWithUnits };
 
 const segmentBounds = (segments: AnswerSegment[]): { start: number; end: number; sourceTexts: string[] }[] =>
   segments.reduce<{ start: number; end: number; sourceTexts: string[] }[]>((bounds, { text, sourceTexts }) => {
@@ -42,12 +82,12 @@ const normalizeSegments = (segments: AnswerSegment[]): AnswerSegment[] =>
 
 const maskOrderedListMarkers = (text: string): string => text.replace(ORDERED_LIST_MARKER, (marker) => ' '.repeat(marker.length));
 
-const findUnverified = (segments: AnswerSegment[], mask: (text: string) => string): string[] => {
+const findUnverified = (segments: AnswerSegment[], { mask, keys }: { mask: (text: string) => string; keys: NumberKeys }): string[] => {
   const normalized = normalizeSegments(segments);
   const bounds = segmentBounds(normalized);
   const masked = mask(normalized.map(({ text }) => text).join(''));
   const unverifiedNumbers = tokenSpans(masked, NUMBER).filter(
-    (span) => !isTokenVerified(span, bounds, (texts) => texts.flatMap(sourceNumbers).includes(canonicalNumber(span.token))),
+    (span) => !isTokenVerified(span, bounds, (texts) => texts.flatMap(keys.sourceKeys).includes(keys.answerKey(masked, span))),
   );
   const unverifiedNumerals = tokenSpans(masked, NON_ASCII_NUMERAL).filter(
     (span) => !isTokenVerified(span, bounds, (texts) => texts.some((text) => text.includes(span.token))),
@@ -55,7 +95,8 @@ const findUnverified = (segments: AnswerSegment[], mask: (text: string) => strin
   return [...unverifiedNumbers, ...unverifiedNumerals].map(({ token }) => canonicalNumber(token));
 };
 
-export const findUnverifiedNumbers = (segments: AnswerSegment[]): string[] => findUnverified(segments, maskOrderedListMarkers);
+export const findUnverifiedNumbers = (segments: AnswerSegment[]): string[] =>
+  findUnverified(segments, { mask: maskOrderedListMarkers, keys: PLAIN_NUMBER_KEYS });
 
-export const findUnverifiedNumbersOutsideVolumes = (segments: AnswerSegment[]): string[] =>
-  findUnverified(segments, (text) => maskStatedVolumes(maskOrderedListMarkers(text)));
+export const findUnverifiedNumbersByUnit = (segments: AnswerSegment[]): string[] =>
+  findUnverified(segments, { mask: (text) => maskStatedVolumes(maskOrderedListMarkers(text)), keys: UNIT_NUMBER_KEYS });

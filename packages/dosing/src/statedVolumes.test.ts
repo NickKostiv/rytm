@@ -69,14 +69,33 @@ test('one source with two preparations of a drug pairs each dose only with the c
   assert.deepEqual(checkStatedVolumes('«0,3 мг», «10 мкг/мл» — 30 мл.', units), [UNVERIFIED]);
 });
 
-test('a volume the source states directly passes when quoted verbatim with its unit from one item', () => {
+test('a volume the source states directly passes when quoted verbatim with its unit from one item, in a sentence with no dose or concentration', () => {
   const unit = moh('5. За наявності стридору синтетикол 1 мг/мл, 5 мл через небулайзер.');
-  assert.deepEqual(checkStatedVolumes('Протокол: «синтетикол 1 мг/мл, 5 мл через небулайзер».', [unit]), [VERIFIED]);
+  assert.deepEqual(checkStatedVolumes('Протокол: «5 мл через небулайзер».', [unit]), [VERIFIED]);
+  assert.deepEqual(checkStatedVolumes('Протокол: «синтетикол 1 мг/мл, 5 мл через небулайзер».', [unit]), [UNVERIFIED]);
   assert.deepEqual(checkStatedVolumes('Протокол: «20 мл/кг ізотонічного розчину».', [moh('7. Введіть 20 мл/кг ізотонічного розчину.')]), [VERIFIED]);
   assert.deepEqual(checkStatedVolumes('Обмеження «до 80 мл/год».', [moh('обмеження об’єму - до 80 мл/год')]), [VERIFIED]);
   assert.deepEqual(checkStatedVolumes('Протокол: «20 мл/кг».', [moh('7. Введіть 20 мл ізотонічного розчину.')]), [UNVERIFIED]);
   assert.deepEqual(checkStatedVolumes('Наберіть 0,3 мл.', [moh(SYNTHETIC_ITEM)]), [UNVERIFIED]);
   assert.deepEqual(checkStatedVolumes('Наберіть 5 мл.', [web('Синтетикол, 5 мл через небулайзер')]), [WEB_BOUND]);
+});
+
+test('a dose or a concentration in the sentence rules out the verbatim path, so a source volume cannot pose as a dose', () => {
+  const unit = moh('Синтетикол, ампула 1 мл, розчин 0,1%.');
+  assert.deepEqual(checkStatedVolumes('Наберіть 1 мл розчину «0,1%».', [unit]), [UNVERIFIED]);
+  assert.deepEqual(checkStatedVolumes('Наберіть 1 мл, доза «0,3 мг».', [moh('Синтетикол 0,3 мг, ампула 1 мл.')]), [UNVERIFIED]);
+  assert.deepEqual(checkStatedVolumes('Обмеження «до 80 мл/год», розчин «0,9%».', [moh('0,9% розчин, до 80 мл/год')]), [UNVERIFIED]);
+});
+
+test('every volume unit is located and recomputed in ml: ml, мілілітрів, кубиків, cc, см³, см3, л', () => {
+  const unit = moh('2. введіть синтетикол 10 мг (5 мг/мл)');
+  const wrong = ['10 ml', '10 мілілітрів', '10 кубиків', '10 кубика', '10 cc', '10 см³', '10 см3', '0,01 л', '10 мл'];
+  wrong.forEach((volume) => assert.deepEqual(checkStatedVolumes(`Синтетикол «10 мг» «(5 мг/мл)» — ${volume}.`, [unit]), [UNVERIFIED], volume));
+  const right = ['2 ml', '2 мілілітри', '2 кубики', '2 cc', '2 см³', '0,002 л', '2 мл'];
+  right.forEach((volume) => assert.deepEqual(checkStatedVolumes(`Синтетикол «10 мг» «(5 мг/мл)» — ${volume}.`, [unit]), [VERIFIED], volume));
+  assert.deepEqual(checkStatedVolumes('«4 г в/в (20% розчин)» — це 0,02 л.', [moh('1.4. Синтетикол - 4 г в/в (20% розчин).')]), [VERIFIED]);
+  assert.deepEqual(checkStatedVolumes('Протокол: «20 ml/kg».', [moh('Введіть 20 мл/кг ізотонічного розчину.')]), [VERIFIED]);
+  assert.deepEqual(checkStatedVolumes('Подайте «1 млн» одиниць.', [unit]), []);
 });
 
 test('a stated dose and concentration require the recompute even when the volume is also in the source', () => {
@@ -92,9 +111,9 @@ test('every volume in a sentence is checked', () => {
 });
 
 test('masking blanks volume tokens only and keeps the text length', () => {
-  const text = normalizeNumberText('«0,3 мг» «1 мг/мл» — 0,3 мл; 20 мл/кг');
+  const text = normalizeNumberText('«0,3 мг» «1 мг/мл» — 0,3 мл; 20 мл/кг; 10 ml; 7 кубиків; 4 см³');
   const masked = maskStatedVolumes(text);
   assert.equal(masked.length, text.length);
   assert.ok(masked.includes('0.3 мг') && masked.includes('1 мг/мл'));
-  assert.ok(!masked.includes('0.3 мл') && !masked.includes('20 мл/кг'));
+  assert.ok(!/\d/.test(masked.slice(masked.indexOf('—'))));
 });

@@ -158,6 +158,11 @@ const recognisedEvent = (recognition: DoseRecognition): DoseParametersEvent | nu
 
 const isNoSourceRefusal = (text: string): boolean => text.trim().replace(TRAILING_PUNCTUATION, '') === NO_SOURCE_MESSAGE;
 
+const noSources = (turn: Turn, reason: string): TurnOutcome => {
+  log(turn, `no_sources reason=${reason}`);
+  return NO_SOURCES;
+};
+
 const uniqueFragments = (fragments: RetrievedFragment[]): RetrievedFragment[] =>
   [...new Map(fragments.map((fragment) => [fragment.chunk.id, fragment])).values()];
 
@@ -214,6 +219,10 @@ const verifyFragmentAnswer = async (turn: Turn, dependencies: VerifiedDependenci
     return withheld(fallbackQuotes, doseEvent);
   }
   const sentences = splitAnswerSentences(answer.text);
+  if (sentences.length === 0) {
+    log(turn, 'withheld check=empty_answer');
+    return withheld(fallbackQuotes, doseEvent);
+  }
   const checked = runDeterministicChecks(answer, sentences, { hasCalculatorRule: hasCalculatorRule(recognition) });
   if (checked.status === 'failed') {
     log(turn, `withheld check=${checked.check}`);
@@ -260,7 +269,7 @@ const answerWithFragments = async (
     const { content, stopReason } = await startAnswer(turn, dependencies, fragments);
     if (stopReason === REFUSAL) return { kind: 'error', message: REFUSAL_MESSAGE };
     const answer = collectVerifiedAnswer(content, fragments);
-    if (isNoSourceRefusal(answer.text)) return NO_SOURCES;
+    if (isNoSourceRefusal(answer.text)) return noSources(turn, 'model_refusal');
     if (!answer.hasCitations && !isKnownMedical) {
       log(turn, 'answer has no citations');
       const reply = await classifyTurn(turn, dependencies);
@@ -282,14 +291,14 @@ const answerWithoutFragments = async (turn: Turn, dependencies: VerifiedDependen
     const { content, stopReason } = await startAnswer(turn, dependencies, []);
     if (stopReason === REFUSAL) return { kind: 'error', message: REFUSAL_MESSAGE };
     const answer = collectVerifiedAnswer(content, []);
-    if (isNoSourceRefusal(answer.text) || stopReason !== END_TURN) return NO_SOURCES;
+    if (isNoSourceRefusal(answer.text)) return noSources(turn, 'model_refusal');
+    if (stopReason !== END_TURN) return noSources(turn, `stop_reason stop=${stopReason}`);
     const recognition = await awaitDoseRecognition(dose);
+    if (turn.signal.aborted) return failureOutcome(new Anthropic.APIUserAbortError(), turn, NO_SOURCES);
     const sentences = splitAnswerSentences(answer.text);
+    if (sentences.length === 0) return noSources(turn, 'empty_answer');
     const checked = runDeterministicChecks(answer, sentences, { hasCalculatorRule: hasCalculatorRule(recognition) });
-    if (checked.status === 'failed') {
-      log(turn, `no_sources check=${checked.check}`);
-      return NO_SOURCES;
-    }
+    if (checked.status === 'failed') return noSources(turn, `check=${checked.check}`);
     const allLines = new Set(sentences.map(({ line }) => line));
     const text = appendToLines(answer.text, allLines, OUTSIDE_PROTOCOLS_LABEL);
     return { kind: 'answer', text, cited: [], webSources: answer.webSources, stopReason: END_TURN, doseEvent: null };

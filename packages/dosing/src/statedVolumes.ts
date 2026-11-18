@@ -16,7 +16,10 @@ type ConcentrationToken = { amountMg: Decimal; volumeMl: Decimal; key: string };
 const NUMBER = String.raw`\d+(?:\.\d+)?`;
 const RANGE = String.raw`(${NUMBER})(?:\s*-\s*(${NUMBER}))?`;
 const LETTER = 'а-яіїєґa-z';
-const VOLUME_PATTERN = new RegExp(String.raw`${RANGE}\s*мл((?:\s*\/\s*[${LETTER}]+)*)(?![${LETTER}\d])`, 'giu');
+const VOLUME_UNIT = String.raw`мілілітр[${LETTER}]*|мл|ml|cc|куб[${LETTER}]*|(?:см|cm)[3³]|літр[${LETTER}]*|л|l`;
+const VOLUME_PATTERN = new RegExp(String.raw`${RANGE}\s*(${VOLUME_UNIT})((?:\s*\/\s*[${LETTER}]+)*)(?![${LETTER}\d])`, 'giu');
+const LITRE_UNIT = /^(?:л|l|літр)/u;
+const LATIN_PER_KG = /\/kg/g;
 const DOSE_PATTERN = new RegExp(String.raw`${RANGE}\s*(мкг|мг|г)(\s*\/\s*кг)?(?![${LETTER}\d])(?!\s*\/)`, 'giu');
 const PER_ML_PATTERN = new RegExp(String.raw`(${NUMBER})\s*(мкг|мг)\s*\/\s*мл(?![${LETTER}])`, 'giu');
 const PER_VOLUME_PATTERN = new RegExp(String.raw`(${NUMBER})\s*мг\s*\/\s*(${NUMBER})\s*мл(?![${LETTER}])`, 'giu');
@@ -62,8 +65,9 @@ const findVolumes = (text: string): VolumeToken[] =>
   standaloneMatches(text, VOLUME_PATTERN).flatMap((match) => {
     const amount = parseAmount(match[1], match[2]);
     if (!amount) return [];
-    const suffix = (match[3] ?? '').replace(SPACES, '').toLowerCase();
-    return [{ amount, suffix, key: `${amountKey(amount)}мл${suffix}`, start: match.index, end: match.index + match[0].length }];
+    const amountMl = LITRE_UNIT.test((match[3] ?? '').toLowerCase()) ? scaleAmount(amount, THOUSAND) : amount;
+    const suffix = (match[4] ?? '').replace(SPACES, '').toLowerCase().replace(LATIN_PER_KG, PER_KG_SUFFIX);
+    return [{ amount: amountMl, suffix, key: `${amountKey(amountMl)}мл${suffix}`, start: match.index, end: match.index + match[0].length }];
   });
 
 const findDoses = (text: string): DoseToken[] =>
@@ -129,10 +133,9 @@ const supportingUnits = (
   sentence: { doses: DoseToken[]; concentrations: ConcentrationToken[] },
   units: ParsedUnit[],
 ): ParsedUnit[] => {
+  if (sentence.doses.length === 0 && sentence.concentrations.length === 0) return units.filter(({ volumeKeys }) => volumeKeys.has(volume.key));
   const isRecomputable = volume.suffix === '' || volume.suffix === PER_KG_SUFFIX;
-  if (!isRecomputable || sentence.doses.length === 0 || sentence.concentrations.length === 0) {
-    return units.filter(({ volumeKeys }) => volumeKeys.has(volume.key));
-  }
+  if (!isRecomputable || sentence.doses.length === 0 || sentence.concentrations.length === 0) return [];
   return units.filter((unit) =>
     sentence.doses.some(
       (dose) =>

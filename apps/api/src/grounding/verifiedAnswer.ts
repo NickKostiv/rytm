@@ -2,7 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { checkStatedVolumes } from '@rytm/dosing';
 import type { VolumeSourceUnit } from '@rytm/dosing';
 import type { RetrievedFragment } from '../retrieval/sourceIndex.js';
-import { findUnverifiedNumbers, findUnverifiedNumbersOutsideVolumes } from './answerNumbers.js';
+import { findUnverifiedNumbersByUnit } from './answerNumbers.js';
 import type { AnswerSegment } from './answerNumbers.js';
 import type { AnswerSentence } from './answerSentences.js';
 
@@ -25,6 +25,8 @@ export type VerifiedAnswer = {
 export type DeterministicCheck = { status: 'failed'; check: 'numbers' | 'volumes' | 'calculator' } | { status: 'passed'; webBoundSentences: Set<number> };
 
 const TOP_LEVEL_ITEM = /^\s*\d+\.\s/;
+const PARAGRAPH_START = /^\s*\p{Lu}/u;
+const SENTENCE_END = /[.!?]\s*$/;
 const WEB_SOURCE_ID_PREFIX = 'w';
 
 const toBlock = (block: Anthropic.Beta.BetaTextBlock, fragments: RetrievedFragment[], start: number): AnswerBlock => {
@@ -81,13 +83,17 @@ export const collectVerifiedAnswer = (content: Anthropic.Beta.BetaContentBlock[]
   };
 };
 
+const startsParagraph = (line: string, previous: string | undefined): boolean =>
+  PARAGRAPH_START.test(line) && (previous === undefined || SENTENCE_END.test(previous));
+
 export const splitSourceUnits = (content: string): string[] => {
   const lines = content.split('\n');
   if (!lines.some((line) => TOP_LEVEL_ITEM.test(line))) return lines;
   return lines.reduce<{ units: string[]; isInItem: boolean }>(
-    ({ units, isInItem }, line) => {
+    ({ units, isInItem }, line, index) => {
+      if (line.trim().length === 0) return { units, isInItem: false };
       if (TOP_LEVEL_ITEM.test(line)) return { units: [...units, line], isInItem: true };
-      if (!isInItem) return { units: [...units, line], isInItem };
+      if (!isInItem || startsParagraph(line, lines[index - 1])) return { units: [...units, line], isInItem: false };
       return { units: [...units.slice(0, -1), `${units.at(-1) ?? ''}\n${line}`], isInItem };
     },
     { units: [], isInItem: false },
@@ -118,12 +124,12 @@ export const runDeterministicChecks = (
   sentences: AnswerSentence[],
   { hasCalculatorRule }: { hasCalculatorRule: boolean },
 ): DeterministicCheck => {
-  if (findUnverifiedNumbersOutsideVolumes(answer.blocks.map(toSegment)).length > 0) return { status: 'failed', check: 'numbers' };
+  if (findUnverifiedNumbersByUnit(answer.blocks.map(toSegment)).length > 0) return { status: 'failed', check: 'numbers' };
   const volumeChecks = sentences.map((sentence) => checkStatedVolumes(sentence.text, sentenceSourceUnits(sentence, answer.blocks)));
   if (volumeChecks.flat().some(({ status }) => status === 'unverified')) return { status: 'failed', check: 'volumes' };
   if (hasCalculatorRule) {
     const hasVolume = volumeChecks.some((checks) => checks.length > 0);
-    if (hasVolume || findUnverifiedNumbers(answer.blocks.map(toMohSegment)).length > 0) return { status: 'failed', check: 'calculator' };
+    if (hasVolume || findUnverifiedNumbersByUnit(answer.blocks.map(toMohSegment)).length > 0) return { status: 'failed', check: 'calculator' };
   }
   const webBoundSentences = new Set(
     volumeChecks.flatMap((checks, index) => (checks.some((check) => check.status === 'verified' && check.isWebBound) ? [index] : [])),

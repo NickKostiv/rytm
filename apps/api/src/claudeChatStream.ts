@@ -45,7 +45,7 @@ const WEB_SEARCH_TOOL: Anthropic.Beta.BetaWebSearchTool20260209 = {
   name: 'web_search',
   max_uses: 3,
   blocked_domains: ['moz.gov.ua'],
-  user_location: { type: 'approximate', country: 'UA' },
+  allowed_callers: ['direct'],
 };
 
 export type ConversationReply = { kind: 'medical' } | { kind: 'conversation'; text: string };
