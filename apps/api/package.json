@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.9.0",
     "@hono/node-server": "^2.1.9",
+    "@rytm/dosing": "workspace:*",
     "hono": "^4.13.19",
     "pdfjs-dist": "6.5.438"
   },
