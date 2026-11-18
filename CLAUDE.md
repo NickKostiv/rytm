@@ -87,6 +87,17 @@ Session of 2026-11-18 (orchestrator):
 - Retrieval fix without a ticket: patient numbers and age/weight units are dropped from the query (`toQueryTerms`).
 - Proposed follow-ups, not created: web title and focus ring; classify short follow-ups before the history-joined retrieval; newborn weight in grams; volume precision for non-terminating volumes; a refusal mixed into a cited answer.
 
+Session of 2026-11-18, second part (orchestrator, autonomous run):
+
+- Committed: 9e115b6 KAN-63/64 (dose-first prompt, retrieval folding, withheld citations), 0852312 KAN-96 contract, 37b8dd4 + 1a7e351 KAN-104 (history), b097345 KAN-97 (dose_parameters + POST /dose), 9bb2622 KAN-106 decision record.
+- In Review in Jira: KAN-63, KAN-64, KAN-95, KAN-96, KAN-97, KAN-104 (all "Implemented, not fully verified" except KAN-96).
+- 930ea8c (KAN-95) wrongly contains the deletion of `apps/mobile/src/features/chat/use-chat.ts`; fixed by 37b8dd4. The owner may amend before pushing.
+- KAN-106 (verified free answer) in progress, uncommitted: prompts done by ai-developer (`VERIFIED_SYSTEM_PROMPT`, `JUDGE_SYSTEM_PROMPT`, `VERIFIED_CONVERSATION_SYSTEM_PROMPT`, `retrievalTerms` in the classifier; grounded/legacy prompts byte-identical); be-developer was building the pipeline when the session ended (files in `apps/api/src/grounding/verified*.ts`, `answerSentences.ts`, `judgeVerdict.ts`, `retrieval/retrievalTerms.ts`, `packages/dosing/src/statedVolumes.ts`, `numberText.ts`). State unknown: check `git status`, typecheck and tests first.
+- Lexical retrieval cannot pass long field questions («Пацієнт 70 років… скільки мл адреналіну набрати в м’яз?» covers 32 % vs the 0.6 gate) without letting off-topic queries through; four variants were tried and rejected. The fix is the query rewrite in KAN-106 (`retrievalTerms`, one re-search).
+- No hypertension protocol in the base (order 1581 of 12.09.2024 is not ingested); magnesium with high BP appears only in 6.2 eclampsia.
+- KAN-100 (calculator screen): designer spec done in the previous session's transcript only, not in the repo; to be redone or re-requested. Decisions: presets 3,4,5,6,8,10,12,15,20,25,30,40,50,60,70,80,90,100 kg plus manual entry; single dose only; rules with a population shown with a warning; recents in AsyncStorage; «Не замінює клінічного рішення» in the info caption.
+- Proposed follow-ups, not created: history LOWs (`aria-busy` on dialog confirm, title focus ring, header alignment at 768 px, reload-interrupted answers shown as stopped); index routes «в/м», «в/в» and fix the stemmer (діазепам / діазепаму); drug + indication without a dose question gets no card; «1 кг 200 г» in the extraction prompt; replace empty-state example E3 «Судоми в дитини: що вводити?» (mostly refused); ingest order 1581 and drug instructions.
+
 Findings from planning that are not in the code or the specs:
 
 - Research suggests the product as designed may qualify as medical device software (AGENT_SPEC RED asking for patient age / weight, YELLOW "recommendations", the per-answer flag, removed on 2026-11-18). This is an inference, not a legal opinion; the MDCG quotes came from an unofficial copy. Tracked in KAN-13.
@@ -229,3 +240,4 @@ Known baseline errors (not regressions):
 - Answers are long: the dose is buried in text (owner, 2026-11-18). The prompt rewrite for the dose-first format is pending.
 - Offline rule-set updates and how a stale rule set is shown are undecided.
 - `apps/mobile/package.json` gained `eslint` and `eslint-config-expo`, auto-installed by `expo lint`.
+- Chat history (KAN-104) is on the device in AsyncStorage; dosing parameters and `POST /dose` exist on the backend (KAN-97) but the app does not render the card yet (KAN-98).

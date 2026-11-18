@@ -2,6 +2,8 @@
 
 Behavior contract for the Rytm AI assistant. Source of truth for prompts, backend response schema and client rendering. Product context: [CONTEXT.md](CONTEXT.md).
 
+Verified mode (`VERIFIED_MODE=1`, KAN-106, decided 2026-11-18): the rules listed in [docs/verified-answer-pipeline.md](docs/verified-answer-pipeline.md) section 8 are replaced there, including the plain refusal for anything outside the base, «no answer from general knowledge» and «the LLM does no dose math» (volumes are recomputed by code). Everything below stays in force with the mode off.
+
 ## No source, missing context
 
 Decided 2026-11-18: answers carry no flag or confidence level. The GREEN / YELLOW / RED flag is removed from the product.
