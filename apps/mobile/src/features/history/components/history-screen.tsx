@@ -1,4 +1,5 @@
 import { router, Stack, useCanGoBack } from 'expo-router';
+import type { SymbolViewProps } from 'expo-symbols';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +8,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { HeaderIconButton } from '@/features/chat/components/header-icon-button';
 import { RetryButton } from '@/features/chat/components/retry-button';
 import {
   BORDER_WIDTH,
@@ -18,11 +20,19 @@ import {
 import { useChatGutter } from '@/features/chat/use-chat-gutter';
 import { useChatSession } from '@/features/history/chat-session-provider';
 import { ConversationRow } from '@/features/history/components/conversation-row';
+import { UnreadableHistoryBanner } from '@/features/history/components/unreadable-history-banner';
 import { DIALOG_TITLE_MAX_LENGTH, HISTORY_COPY } from '@/features/history/constants';
 import { sortNewestFirst, truncateTitle } from '@/features/history/conversation-records';
 import { formatConversationDate } from '@/features/history/format-conversation-date';
 import type { Conversation } from '@/features/history/types';
 import { useTheme } from '@/hooks/use-theme';
+
+const BACK_SYMBOL: SymbolViewProps['name'] = {
+  ios: 'chevron.backward',
+  android: 'arrow_back',
+  web: 'arrow_back',
+};
+const CHAT_LINK_PADDING_HORIZONTAL = 12;
 
 type PendingDeletion = { scope: 'one'; conversation: Conversation } | { scope: 'all' };
 
@@ -45,6 +55,7 @@ export function HistoryScreen() {
     deleteAllConversations,
     pruneHistory,
     reloadHistory,
+    unreadableCount,
   } = useChatSession();
   const theme = useTheme();
   const gutter = useChatGutter();
@@ -166,21 +177,36 @@ export function HistoryScreen() {
       <Stack.Screen
         options={{
           title: HISTORY_COPY.screenTitle,
-          headerLeft: canGoBack
-            ? undefined
-            : () => (
-                <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={styles.chatLink}>
-                  <ThemedText
-                    themeColor="accent"
-                    maxFontSizeMultiplier={HEADER_MAX_FONT_SCALE}
-                    style={styles.chatLinkLabel}>
-                    {HISTORY_COPY.backToChat}
-                  </ThemedText>
-                </Pressable>
-              ),
+          headerLeft: () =>
+            canGoBack ? (
+              <HeaderIconButton
+                symbol={BACK_SYMBOL}
+                accessibilityLabel={HISTORY_COPY.backToChatA11y}
+                onPress={() => router.back()}
+              />
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.replace('/')}
+                style={[styles.chatLink, { marginLeft: gutter - CHAT_LINK_PADDING_HORIZONTAL }]}>
+                <ThemedText
+                  themeColor="accent"
+                  maxFontSizeMultiplier={HEADER_MAX_FONT_SCALE}
+                  style={styles.chatLinkLabel}>
+                  {HISTORY_COPY.backToChat}
+                </ThemedText>
+              </Pressable>
+            ),
         }}
       />
-      <View style={styles.content}>{renderBody()}</View>
+      <View style={styles.content}>
+        {unreadableCount > 0 && (
+          <View style={[styles.banner, { paddingHorizontal: gutter }]}>
+            <UnreadableHistoryBanner />
+          </View>
+        )}
+        {renderBody()}
+      </View>
       {pendingDeletion && (
         <ConfirmDialog
           title={
@@ -266,8 +292,14 @@ const styles = StyleSheet.create({
   },
   chatLink: {
     minHeight: TOUCH_TARGET_SIZE,
+    minWidth: TOUCH_TARGET_SIZE,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.two,
+    alignItems: 'center',
+    paddingHorizontal: CHAT_LINK_PADDING_HORIZONTAL,
+    marginRight: Spacing.two,
+  },
+  banner: {
+    paddingTop: Spacing.three,
   },
   chatLinkLabel: {
     fontSize: 15,

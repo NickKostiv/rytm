@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,10 @@ const CANCEL_LABEL = 'Скасувати';
 const CARD_MAX_WIDTH = 400;
 const CARD_RADIUS = 16;
 const CARD_MAX_HEIGHT_RATIO = 0.8;
+
+function focusTitleOnWeb(node: ComponentRef<typeof View> | null) {
+  if (Platform.OS === 'web') node?.focus();
+}
 
 type ConfirmStatus = 'idle' | 'running' | 'failed';
 
@@ -68,7 +73,12 @@ export function ConfirmDialog({
   };
 
   return (
-    <Modal transparent visible animationType="fade" onRequestClose={handleCancel}>
+    <Modal
+      transparent
+      visible
+      animationType="fade"
+      aria-label={title}
+      onRequestClose={handleCancel}>
       <View style={[styles.overlay, { paddingHorizontal: horizontalInset }]}>
         <Pressable
           accessible={false}
@@ -86,9 +96,11 @@ export function ConfirmDialog({
             },
           ]}>
           <ScrollView contentContainerStyle={styles.content}>
-            <ThemedText type="answerSubheading" accessibilityRole="header">
-              {title}
-            </ThemedText>
+            <View tabIndex={-1} ref={focusTitleOnWeb}>
+              <ThemedText type="answerSubheading" accessibilityRole="header">
+                {title}
+              </ThemedText>
+            </View>
             <ThemedText themeColor="textSecondary">{body}</ThemedText>
             {status === 'failed' && (
               <View accessibilityLiveRegion="polite" style={styles.failureRow}>
@@ -105,7 +117,6 @@ export function ConfirmDialog({
                 accessibilityRole="button"
                 accessibilityLabel={confirmLabel}
                 accessibilityState={{ disabled: isRunning, busy: isRunning }}
-                disabled={isRunning}
                 onPress={() => void handleConfirm()}
                 style={[styles.button, { backgroundColor: theme.danger }]}>
                 {isRunning ? (

@@ -30,7 +30,10 @@ export const MONTHS_GENITIVE = [
   'грудня',
 ] as const;
 
+const SENTENCE_END = /[.?!…]$/;
+
 export const HISTORY_COPY = {
+  backToChatA11y: 'Назад до чату',
   screenTitle: 'Історія',
   backToChat: 'Чат',
   loading: 'Завантажую історію…',
@@ -39,7 +42,7 @@ export const HISTORY_COPY = {
   yesterday: (time: string) => `Учора, ${time}`,
   currentSuffix: ' · Поточна',
   rowA11yLabel: (title: string, date: string, isActive: boolean) =>
-    `${title}. ${date}${isActive ? ', поточна' : ''}`,
+    `${title}${SENTENCE_END.test(title) ? '' : '.'} ${date}${isActive ? ', поточна' : ''}`,
   rowA11yHint: 'Відкриває розмову',
   deleteOneA11y: (title: string) => `Видалити розмову: ${title}`,
   deleteAll: 'Видалити всю історію',
