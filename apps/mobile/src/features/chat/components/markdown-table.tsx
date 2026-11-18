@@ -5,12 +5,14 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { MarkdownInline } from '@/features/chat/components/markdown-inline';
+import { MarkdownTableCards } from '@/features/chat/components/markdown-table-cards';
 import {
   BORDER_WIDTH,
   COPY,
   TABLE_CELL_PADDING_HORIZONTAL,
   TABLE_RADIUS,
   TABLE_TEXT_CELL_MAX_WIDTH,
+  WIDE_LAYOUT_MIN_WIDTH,
 } from '@/features/chat/constants';
 import { useChatGutter } from '@/features/chat/use-chat-gutter';
 import { useTheme } from '@/hooks/use-theme';
@@ -20,13 +22,20 @@ type MeasuredColumns = {
   widths: number[];
 };
 
-const DIGIT_PATTERN = /\d/;
+const CARDS_MIN_COLUMN_COUNT = 4;
 
 type MarkdownTableProps = {
   table: Tokens.Table;
 };
 
 export function MarkdownTable({ table }: MarkdownTableProps) {
+  const { width } = useWindowDimensions();
+  const shouldShowCards =
+    width < WIDE_LAYOUT_MIN_WIDTH && table.header.length >= CARDS_MIN_COLUMN_COUNT && table.rows.length > 0;
+  return shouldShowCards ? <MarkdownTableCards table={table} /> : <ScrollableTable table={table} />;
+}
+
+function ScrollableTable({ table }: MarkdownTableProps) {
   const theme = useTheme();
   const gutter = useChatGutter();
   const { fontScale } = useWindowDimensions();
@@ -71,25 +80,21 @@ export function MarkdownTable({ table }: MarkdownTableProps) {
               <View
                 key={rowIndex}
                 style={[styles.row, isHeader && { backgroundColor: theme.backgroundElement }]}>
-                {row.map((cell, columnIndex) => {
-                  const canWrap = isHeader || !DIGIT_PATTERN.test(cell.text);
-                  return (
-                    <View
-                      key={columnIndex}
-                      onLayout={(event) => handleCellLayout(columnIndex, event.nativeEvent.layout.width)}
-                      style={[
-                        styles.cell,
-                        { borderColor: theme.border, minWidth: columnWidths[columnIndex] },
-                        canWrap && styles.wrappingCell,
-                        columnIndex < columnCount - 1 && styles.cellRightBorder,
-                        !isLastRow && styles.cellBottomBorder,
-                      ]}>
-                      <ThemedText selectable type="table" style={isHeader && styles.headerText}>
-                        <MarkdownInline tokens={cell.tokens} />
-                      </ThemedText>
-                    </View>
-                  );
-                })}
+                {row.map((cell, columnIndex) => (
+                  <View
+                    key={columnIndex}
+                    onLayout={(event) => handleCellLayout(columnIndex, event.nativeEvent.layout.width)}
+                    style={[
+                      styles.cell,
+                      { borderColor: theme.border, minWidth: columnWidths[columnIndex] },
+                      columnIndex < columnCount - 1 && styles.cellRightBorder,
+                      !isLastRow && styles.cellBottomBorder,
+                    ]}>
+                    <ThemedText selectable type="table" style={isHeader && styles.headerText}>
+                      <MarkdownInline tokens={cell.tokens} />
+                    </ThemedText>
+                  </View>
+                ))}
               </View>
             );
           })}
@@ -117,8 +122,6 @@ const styles = StyleSheet.create({
   cell: {
     paddingVertical: Spacing.two,
     paddingHorizontal: TABLE_CELL_PADDING_HORIZONTAL,
-  },
-  wrappingCell: {
     maxWidth: TABLE_TEXT_CELL_MAX_WIDTH,
   },
   cellRightBorder: {

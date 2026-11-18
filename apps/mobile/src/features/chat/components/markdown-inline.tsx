@@ -2,6 +2,7 @@ import type { Token } from 'marked';
 import { StyleSheet, Text } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
+import { keepQuantitiesTogether } from '@/features/chat/keep-quantities-together';
 import { isMarkedToken } from '@/features/chat/markdown-tokens';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -35,7 +36,11 @@ function InlineToken({ token }: { token: Token }) {
     case 'link':
       return <MarkdownInline tokens={token.tokens} />;
     case 'text':
-      return token.tokens ? <MarkdownInline tokens={token.tokens} /> : token.text;
+      return token.tokens ? (
+        <MarkdownInline tokens={token.tokens} />
+      ) : (
+        keepQuantitiesTogether(token.text)
+      );
     case 'codespan':
       return (
         <Text style={[styles.code, { backgroundColor: theme.backgroundElement }]}>{token.text}</Text>

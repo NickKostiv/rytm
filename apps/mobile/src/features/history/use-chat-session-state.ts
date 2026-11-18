@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { applyStreamEvent, toContextMessages, toStoppedAnswer } from '@/features/chat/chat-messages';
+import { stripLayoutCharacters } from '@/features/chat/keep-quantities-together';
 import { streamAnswer } from '@/features/chat/stream-answer';
 import type { ApiMessage, AssistantMessage, ChatMessage } from '@/features/chat/types';
 import { type DoseCards, useDoseCards } from '@/features/chat/use-dose-cards';
@@ -229,7 +230,8 @@ export function useChatSessionState(): ChatSession {
     const previousMessages = existing?.messages ?? [];
     if (isSendBlocked || isAnswerStreaming(previousMessages)) return;
     const now = Date.now();
-    const userMessage: ChatMessage = { id: createLocalId(), role: 'user', content: text };
+    const content = stripLayoutCharacters(text);
+    const userMessage: ChatMessage = { id: createLocalId(), role: 'user', content };
     const assistantMessage: ChatMessage = {
       id: createLocalId(),
       role: 'assistant',
@@ -242,7 +244,7 @@ export function useChatSessionState(): ChatSession {
       ? { ...existing, updatedAt: now, messages: [...previousMessages, userMessage, assistantMessage] }
       : {
           id: current.activeId,
-          title: toConversationTitle(text),
+          title: toConversationTitle(content),
           createdAt: now,
           updatedAt: now,
           messages: [userMessage, assistantMessage],
