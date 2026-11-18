@@ -27,3 +27,5 @@ export {
   MOH_RULE_SOURCE_DOCUMENTS,
 } from '#mohRuleSet';
 export type { RuleSourceDocument } from '#mohRuleSet';
+export { ROUTE_LABELS } from '#routeLabels';
+export type { RouteLabel } from '#routeLabels';

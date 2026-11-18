@@ -1,6 +1,18 @@
-import type { AnswerSource, ProgressStage, WebSource } from '@/features/chat/types';
+import type { DoseRejectionReason } from '@/features/dosing/types';
+import { SOURCE_COPY } from '@/features/sources/constants';
+import type {
+  AnswerSource,
+  MissingDoseParameter,
+  ProgressStage,
+  WebSource,
+} from '@/features/chat/types';
 
 export { BORDER_WIDTH, PILL_RADIUS, TOUCH_TARGET_SIZE } from '@/constants/theme';
+export {
+  SOURCE_CHIP_PADDING_HORIZONTAL,
+  SOURCE_CHIP_RADIUS,
+  SOURCE_ITEM_PADDING_VERTICAL,
+} from '@/features/sources/constants';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -40,11 +52,12 @@ export const TABLE_RADIUS = 8;
 export const TABLE_CELL_PADDING_HORIZONTAL = 10;
 export const TABLE_TEXT_CELL_MAX_WIDTH = 180;
 
-export const SOURCE_ITEM_PADDING_VERTICAL = 10;
-export const SOURCE_CHIP_RADIUS = 6;
-export const SOURCE_CHIP_PADDING_HORIZONTAL = 6;
-export const ALLOWED_SOURCE_HOSTS = ['moz.gov.ua', 'www.moz.gov.ua'];
 export const WAITING_NOTE_INDENT = 28;
+
+export const WEIGHT_INPUT_WIDTH = 140;
+export const ROUTE_OPTION_MIN_WIDTH = 64;
+export const CONFIRM_MIN_WIDTH_WIDE = 200;
+export const DOSE_REQUEST_TIMEOUT_MS = 15000;
 
 export const PROGRESS_STAGES = ['retrieving', 'answering', 'searching_web', 'verifying'] as const;
 
@@ -54,9 +67,8 @@ export const EXAMPLE_QUESTIONS = [
   'Судоми в дитини: що вводити?',
 ] as const;
 
-const NBSP = '\u00A0';
-
 export const COPY = {
+  ...SOURCE_COPY,
   appTitle: 'Rytm',
   historyA11y: 'Історія розмов',
   newChatA11y: 'Новий чат',
@@ -84,16 +96,8 @@ export const COPY = {
   retryA11y: 'Повторити запит',
   tableScrollHint: 'Гортайте таблицю вбік →',
   sourcesTitle: 'Джерела',
-  sourceOrder: (orderNumber: string, orderDate: string) =>
-    `Наказ МОЗ №${NBSP}${orderNumber} від ${orderDate}`,
-  sourcePage: (page: string) => `с.${NBSP}${page}`,
-  sourceHost: 'moz.gov.ua ↗',
-  sourceUnverified: 'чинність не перевірено',
-  sourceBlocked: 'Посилання не відкрито: адреса не з moz.gov.ua',
-  sourceOpenFailed: 'Не вдалося відкрити посилання',
   sourceA11yLabel: (position: number, { title, orderNumber, orderDate, page }: AnswerSource) =>
     `Джерело ${position}: ${title}, наказ № ${orderNumber} від ${orderDate}, ${page ? `сторінка ${page}, ` : ''}moz.gov.ua, чинність не перевірено`,
-  sourceA11yHint: 'Відкриває документ у браузері',
   webSourceLabel: 'Не документ МОЗ (довідково)',
   webSourceHost: (domain: string) => `${domain} ↗`,
   webSourceBlocked: 'Посилання не відкрито: адреса не https',
@@ -103,4 +107,40 @@ export const COPY = {
   networkError: 'Не вдалося отримати відповідь. Перевірте зʼєднання.',
   interruptedStream: 'Відповідь обірвалася. Спробуйте ще раз.',
   serverError: (status: number) => `Помилка сервера (${status})`,
+} as const;
+
+export const DOSE_COPY = {
+  cardTitle: 'Розрахунок дози',
+  confirmHint: 'Перевірте параметри з вашого повідомлення.',
+  missingHint: (missing: MissingDoseParameter[]) => {
+    if (missing.includes('rule') && missing.includes('weight')) {
+      return 'Виберіть шлях введення і вкажіть вагу.';
+    }
+    return missing.includes('rule') ? 'Виберіть шлях введення.' : 'Вкажіть вагу пацієнта.';
+  },
+  routeLabel: 'Шлях введення',
+  routeMissing: 'Виберіть шлях введення',
+  weightLabel: 'Вага пацієнта',
+  weightUnit: 'кг',
+  weightA11y: 'Вага пацієнта в кілограмах',
+  emptyWeightHint: 'Вагу не вказано в повідомленні — введіть у кілограмах.',
+  confirm: 'Підтвердити',
+  submitting: 'Розраховую…',
+  rejection: {
+    invalid_weight: 'Перевірте вагу: більше 0 і не більше 300 кг, до двох знаків після коми',
+    no_rule: 'Правило для цього шляху більше недоступне. Напишіть запит ще раз.',
+    source_not_in_force: 'Документ-джерело правила не чинний — дозу не розраховано.',
+    below_rounding_step:
+      'Для цієї ваги доза менша за найменший крок у протоколі — дозу не розраховано.',
+  } satisfies Record<DoseRejectionReason, string>,
+  networkError: 'Не вдалося розрахувати дозу. Перевірте зʼєднання.',
+  incompleteReply: 'Відповідь калькулятора неповна — дозу не показано.',
+  retryA11y: 'Повторити розрахунок дози',
+  edit: 'Змінити параметри',
+  noRule: {
+    no_rule:
+      'Для цього препарату, показання й шляху введення немає правила калькулятора. Дивіться цитату з протоколу нижче.',
+    source_not_in_force:
+      'Документ, з якого взято правило, не чинний — калькулятор дозу не розраховує. Дивіться цитату з протоколу нижче.',
+  },
 } as const;

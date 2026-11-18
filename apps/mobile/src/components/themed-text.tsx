@@ -13,7 +13,8 @@ export type ThemedTextProps = TextProps & {
     | 'table'
     | 'caption'
     | 'footnote'
-    | 'emptyTitle';
+    | 'emptyTitle'
+    | 'doseValue';
   themeColor?: ThemeColor;
 };
 
@@ -69,5 +70,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: 700,
+  },
+  doseValue: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: 700,
+    fontVariant: ['tabular-nums'],
   },
 });

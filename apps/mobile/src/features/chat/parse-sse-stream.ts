@@ -1,11 +1,9 @@
 import { PROGRESS_STAGES } from '@/features/chat/constants';
+import { parseDoseParameters } from '@/features/chat/parse-dose-parameters';
 import type { ChatCitation, ChatStreamEvent, ProgressStage, WebSource } from '@/features/chat/types';
+import { isRecord } from '@/lib/type-guards';
 
 const FRAME_SEPARATOR = '\n\n';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 function readStringField(payload: unknown, field: string): string {
   if (!isRecord(payload) || typeof payload[field] !== 'string') {
@@ -69,6 +67,11 @@ function readProgressEvent(payload: unknown): ChatStreamEvent | null {
   return { type: 'progress', stage: payload.stage };
 }
 
+function readDoseParametersEvent(payload: unknown): ChatStreamEvent | null {
+  const parameters = parseDoseParameters(payload);
+  return parameters ? { type: 'dose_parameters', parameters } : null;
+}
+
 function toStreamEvent(eventName: string, payload: unknown): ChatStreamEvent | null {
   switch (eventName) {
     case 'delta':
@@ -79,6 +82,8 @@ function toStreamEvent(eventName: string, payload: unknown): ChatStreamEvent | n
       return readWebSourcesEvent(payload);
     case 'progress':
       return readProgressEvent(payload);
+    case 'dose_parameters':
+      return readDoseParametersEvent(payload);
     case 'done':
       return { type: 'done', stopReason: readStringField(payload, 'stopReason') };
     case 'error':

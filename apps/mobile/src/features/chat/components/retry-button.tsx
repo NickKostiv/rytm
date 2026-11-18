@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -14,16 +14,17 @@ type RetryButtonProps = {
   label: string;
   accessibilityLabel: string;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function RetryButton({ label, accessibilityLabel, onPress }: RetryButtonProps) {
+export function RetryButton({ label, accessibilityLabel, onPress, style }: RetryButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={[styles.button, { borderColor: theme.borderStrong }]}>
+      style={[styles.button, { borderColor: theme.borderStrong }, style]}>
       <ThemedText style={styles.label}>{label}</ThemedText>
     </Pressable>
   );
@@ -45,5 +46,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontWeight: 600,
+    textAlign: 'center',
   },
 });

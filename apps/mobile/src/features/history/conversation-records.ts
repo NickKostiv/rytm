@@ -38,6 +38,15 @@ export function settleInterruptedAnswers(messages: ChatMessage[]): ChatMessage[]
   });
 }
 
+export function withoutDoseParameters(conversation: Conversation): Conversation {
+  return {
+    ...conversation,
+    messages: conversation.messages.map((message) =>
+      message.role === 'assistant' ? { ...message, doseParameters: undefined } : message,
+    ),
+  };
+}
+
 export function pruneConversations(
   conversations: Conversation[],
   { now, activeId }: { now: number; activeId: string | null },

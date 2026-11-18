@@ -6,7 +6,7 @@ import type { ApiMessage, ChatStreamEvent } from '@/features/chat/types';
 
 export class ChatRequestError extends Error {}
 
-async function readErrorMessage(response: Response): Promise<string> {
+export async function readErrorMessage(response: Response): Promise<string> {
   try {
     const payload: unknown = await response.json();
     if (typeof payload === 'object' && payload !== null && 'error' in payload) {

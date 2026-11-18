@@ -1,4 +1,4 @@
-import { ALLOWED_SOURCE_HOSTS } from '@/features/chat/constants';
+import { ALLOWED_SOURCE_HOSTS } from '@/features/sources/constants';
 
 const ALLOWED_SOURCE_PROTOCOL = 'https:';
 

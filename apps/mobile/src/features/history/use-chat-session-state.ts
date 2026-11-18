@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import { applyStreamEvent, toContextMessages, toStoppedAnswer } from '@/features/chat/chat-messages';
 import { streamAnswer } from '@/features/chat/stream-answer';
 import type { ApiMessage, AssistantMessage, ChatMessage } from '@/features/chat/types';
+import { type DoseCards, useDoseCards } from '@/features/chat/use-dose-cards';
 import { CONVERSATION_TTL_MS, SLOW_LOAD_DELAY_MS } from '@/features/history/constants';
 import {
   createLocalId,
@@ -11,6 +12,7 @@ import {
   settleInterruptedAnswers,
   sortNewestFirst,
   toConversationTitle,
+  withoutDoseParameters,
 } from '@/features/history/conversation-records';
 import { loadConversations, type StoredHistory } from '@/features/history/conversation-storage';
 import type { Conversation, HistoryLoadStatus } from '@/features/history/types';
@@ -22,7 +24,7 @@ type SessionData = {
   loadStatus: HistoryLoadStatus;
 };
 
-export type ChatSession = {
+export type ChatSession = DoseCards & {
   conversations: Conversation[];
   activeId: string;
   messages: ChatMessage[];
@@ -63,6 +65,7 @@ export function useChatSessionState(): ChatSession {
   const loadRequestRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const persistence = useConversationPersistence(() => sessionRef.current.conversations);
+  const doseCards = useDoseCards();
 
   const messages = getActiveConversation(session)?.messages ?? [];
   const isStreaming = isAnswerStreaming(messages);
@@ -175,9 +178,21 @@ export function useChatSessionState(): ChatSession {
     persistence.saveNow(current.activeId);
   };
 
+  const leaveActiveConversation = (nextActiveId: string) => {
+    doseCards.discardDoseCards();
+    const current = sessionRef.current;
+    commitSession({
+      ...current,
+      activeId: nextActiveId,
+      conversations: current.conversations.map((conversation) =>
+        conversation.id === current.activeId ? withoutDoseParameters(conversation) : conversation,
+      ),
+    });
+  };
+
   const startNewConversation = () => {
     stopStreaming();
-    commitSession({ ...sessionRef.current, activeId: createLocalId() });
+    leaveActiveConversation(createLocalId());
     pruneHistory();
   };
 
@@ -248,12 +263,14 @@ export function useChatSessionState(): ChatSession {
     const activeMessages = getActiveConversation(sessionRef.current)?.messages ?? [];
     const index = activeMessages.findIndex(({ id }) => id === assistantId);
     if (index === -1 || isAnswerStreaming(activeMessages)) return;
+    doseCards.discardDoseCard(assistantId);
     updateAssistant(activeId, assistantId, (message) => ({
       ...message,
       content: '',
       sources: [],
       webSources: [],
       progressStage: undefined,
+      doseParameters: undefined,
       status: 'streaming',
     }));
     persistence.saveNow(activeId);
@@ -263,11 +280,14 @@ export function useChatSessionState(): ChatSession {
   const openConversation = (conversationId: string) => {
     if (conversationId === sessionRef.current.activeId) return;
     stopStreaming();
-    commitSession({ ...sessionRef.current, activeId: conversationId });
+    leaveActiveConversation(conversationId);
   };
 
   const deleteConversation = async (conversationId: string) => {
-    if (conversationId === sessionRef.current.activeId) stopStreaming();
+    if (conversationId === sessionRef.current.activeId) {
+      stopStreaming();
+      doseCards.discardDoseCards();
+    }
     await persistence.deleteOne(conversationId);
     const current = sessionRef.current;
     commitSession({
@@ -279,6 +299,7 @@ export function useChatSessionState(): ChatSession {
 
   const deleteAllConversations = async () => {
     stopStreaming();
+    doseCards.discardDoseCards();
     await persistence.deleteAll();
     commitSession({ ...sessionRef.current, conversations: [], activeId: createLocalId() });
   };
@@ -290,6 +311,7 @@ export function useChatSessionState(): ChatSession {
   };
 
   return {
+    ...doseCards,
     conversations: session.conversations,
     activeId: session.activeId,
     messages,

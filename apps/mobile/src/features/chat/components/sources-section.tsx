@@ -1,5 +1,3 @@
-import { openBrowserAsync } from 'expo-web-browser';
-import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,8 +10,9 @@ import {
   SOURCE_ITEM_PADDING_VERTICAL,
   TOUCH_TARGET_SIZE,
 } from '@/features/chat/constants';
-import { isAllowedSourceUrl, isAllowedWebSourceUrl } from '@/features/chat/source-url';
 import type { AnswerSource, WebSource } from '@/features/chat/types';
+import { isAllowedSourceUrl, isAllowedWebSourceUrl } from '@/features/sources/source-url';
+import { useSourceLink } from '@/features/sources/use-source-link';
 import { useTheme } from '@/hooks/use-theme';
 
 type SourcesSectionProps = {
@@ -48,43 +47,6 @@ export function SourcesSection({ sources, webSources }: SourcesSectionProps) {
       ))}
     </View>
   );
-}
-
-type OpenState = { status: 'idle' } | { status: 'opening' } | { status: 'failed'; message: string };
-
-type SourceLink = {
-  url: string;
-  isAllowed: (url: string) => boolean;
-  blockedMessage: string;
-};
-
-function useSourceLink({ url, isAllowed, blockedMessage }: SourceLink) {
-  const [openState, setOpenState] = useState<OpenState>({ status: 'idle' });
-  const isMountedRef = useRef(false);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  const openLink = async () => {
-    if (openState.status === 'opening') return;
-    if (!isAllowed(url)) {
-      setOpenState({ status: 'failed', message: blockedMessage });
-      return;
-    }
-    setOpenState({ status: 'opening' });
-    try {
-      await openBrowserAsync(url);
-      if (isMountedRef.current) setOpenState({ status: 'idle' });
-    } catch {
-      if (isMountedRef.current) setOpenState({ status: 'failed', message: COPY.sourceOpenFailed });
-    }
-  };
-
-  return { openState, openLink };
 }
 
 type SourceItemProps = {

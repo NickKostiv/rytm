@@ -2,10 +2,7 @@ import { COPY } from '@/features/chat/constants';
 import { parseWebSource } from '@/features/chat/parse-sse-stream';
 import type { AnswerSource, ChatMessage } from '@/features/chat/types';
 import type { Conversation } from '@/features/history/types';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+import { isRecord } from '@/lib/type-guards';
 
 export function parseList<T>(value: unknown, parseItem: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value)) return null;

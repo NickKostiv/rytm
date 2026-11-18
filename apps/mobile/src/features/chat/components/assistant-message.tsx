@@ -2,6 +2,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { DoseSection } from '@/features/chat/components/dose-section';
 import { MarkdownView } from '@/features/chat/components/markdown-view';
 import { RetryButton } from '@/features/chat/components/retry-button';
 import { SourcesSection } from '@/features/chat/components/sources-section';
@@ -62,6 +63,9 @@ export function AssistantMessage({ message, canRetry, onRetry }: AssistantMessag
 
   return (
     <View style={styles.container}>
+      {message.status === 'done' && message.sources.length > 0 && message.doseParameters && (
+        <DoseSection assistantId={message.id} parameters={message.doseParameters} />
+      )}
       {body !== '' && <MarkdownView markdown={body} />}
       {message.status === 'stopped' && body !== '' && (
         <View>

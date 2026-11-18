@@ -6,8 +6,8 @@ import type {
   ChatMessage,
   ChatStreamEvent,
 } from '@/features/chat/types';
+import { formatOrderDate } from '@/features/sources/format-order-date';
 
-const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const VERIFIED_VALIDITY = 'in_force';
 
 function isFailedAnswer(message: ChatMessage | undefined): boolean {
@@ -27,11 +27,6 @@ export function toContextMessages(messages: ChatMessage[]): ApiMessage[] {
 
 export function toStoppedAnswer(message: AssistantMessage): AssistantMessage {
   return message.status === 'streaming' ? { ...message, status: 'stopped' } : message;
-}
-
-function formatOrderDate(isoDate: string): string {
-  const match = ISO_DATE_PATTERN.exec(isoDate);
-  return match ? `${match[3]}.${match[2]}.${match[1]}` : isoDate;
 }
 
 function toAnswerSource(citation: ChatCitation): AnswerSource {
@@ -59,6 +54,8 @@ export function applyStreamEvent(
       return { ...message, webSources: event.items };
     case 'progress':
       return { ...message, progressStage: event.stage };
+    case 'dose_parameters':
+      return { ...message, doseParameters: event.parameters };
     case 'done':
       return { ...message, status: 'done' };
     case 'error':

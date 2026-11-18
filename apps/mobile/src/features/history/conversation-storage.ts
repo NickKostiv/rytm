@@ -23,7 +23,9 @@ function toIndexEntry(conversationIds: string[]): [string, string] {
 }
 
 function toStoredMessage(message: ChatMessage): ChatMessage {
-  return message.role === 'assistant' ? { ...message, progressStage: undefined } : message;
+  return message.role === 'assistant'
+    ? { ...message, progressStage: undefined, doseParameters: undefined }
+    : message;
 }
 
 function toConversationEntry(conversation: Conversation): [string, string] {
